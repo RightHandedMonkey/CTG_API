@@ -42,6 +42,7 @@ public class CTGTag {
      */
     public void touch() {
     	this.setUpload_datetime(Utils.get_current_datetime_str());
+    	//TODO: Should touch set locally changed?
     	this.locally_changed =1;
     }
 	//========================-----------------------> getters/setters <-----------------=========================\\
@@ -93,6 +94,14 @@ public class CTGTag {
 	}
 	public void setClient_uuid(String client_uuid) {
 		this.client_uuid = client_uuid;
+	}
+
+	public int getLocally_changed() {
+		return locally_changed;
+	}
+
+	public void setLocally_changed(int locally_changed) {
+		this.locally_changed = locally_changed;
 	}
 
 	
