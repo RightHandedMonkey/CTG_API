@@ -9,11 +9,9 @@ import com.worxforus.ctg.db.CTGTagTable;
 import com.worxforus.db.TableVersionDb;
 
 /*
- * - Database helper singleton style
- * 
- * QuizDBConnector.Connect(Context c); 
- * QuizDBConnector.getDbX();
- * QuizDBConnector.Release();
+ * - Database table holder - singleton style
+ * Usage:
+ * TagTable tagTable = TablePool.getTagTable(getActivity());
  */
 
 public class TablePool {
@@ -41,7 +39,7 @@ public class TablePool {
 
 	public static TableVersionDb getTableVersions(Context appContext) {
 		if (self().tableVersionTable == null) {
-			self().tableVersionTable = new TableVersionDb(appContext, com.worxforus.ctg.CTGConstants.DATABASE_NAME);
+			self().tableVersionTable = new TableVersionDb(appContext, CTGConstants.DATABASE_NAME);
 		}
 		return self().tableVersionTable;
 	}

@@ -142,7 +142,7 @@ public class CTGTagTable extends TableInterface {
 		return TABLE_VERSION;
 	}
 	//======================----------------> Db Access Methods <----------------================\\
-	public void wipe_table() {
+	public void wipeTable() {
 		synchronized (DATABASE_TABLE) {
 			db.delete(DATABASE_TABLE, null, null);
 		}
@@ -167,7 +167,7 @@ public class CTGTagTable extends TableInterface {
 			int index = -1;
 			Result r = new Result();
 			try {
-				ContentValues cv = get_content_values(t);
+				ContentValues cv = getContentValues(t);
 				index = (int) db.replace(DATABASE_TABLE, null, cv);
 				r.last_insert_id = index;
 			} catch( Exception e ) {
@@ -186,7 +186,7 @@ public class CTGTagTable extends TableInterface {
 				null, 
 				CTG_TAG_ID+" = ? ", new String[] {tagId+""}, null, null, null);
 		if (result.moveToFirst() ) { //make sure data is in the result.  Read only first entry
-			c = get_from_cursor(result);
+			c = getFromCursor(result);
 		}
 		result.close();
 		return c;
@@ -197,7 +197,7 @@ public class CTGTagTable extends TableInterface {
 		Cursor list = getValidRootEntriesCursor();
 		if (list.moveToFirst()){
 			do {
-				al.add(get_from_cursor(list));
+				al.add(getFromCursor(list));
 			} while(list.moveToNext());
 		}
 		list.close();
@@ -207,13 +207,34 @@ public class CTGTagTable extends TableInterface {
 	/**
 	 * Returns the cursor objects.
 	 * if flatten is selected returns only one item for each project (no duplicates) 
-	 * @param include_removed_items
-	 * @param flatten
-	 * @return
+	 * @return ArrayList<CTGTag>
 	 */
 	public Cursor getValidRootEntriesCursor() {
 		return db.query(DATABASE_TABLE, null, 
 				CTG_META_STATUS+" = 0 AND "+CTG_PARENT_TAG_REF+" = 0", null, null, null, CTG_TAG_NAME);
+	}
+	
+	/**
+	 * Retrieve all entries for testing purposes
+	 * @return ArrayList<CTGTag>
+	 */
+	public ArrayList<CTGTag> getAllEntries() {
+		ArrayList<CTGTag> al = new ArrayList<CTGTag>();
+		Cursor list = getAllEntriesCursor();
+		if (list.moveToFirst()){
+			do {
+				al.add(getFromCursor(list));
+			} while(list.moveToNext());
+		}
+		list.close();
+		return al;
+	}
+	/**
+	 * Used for testing
+	 * @return
+	 */
+	protected Cursor getAllEntriesCursor() {
+		return db.query(DATABASE_TABLE, null, null, null, null, null, CTG_TAG_NAME);
 	}
 	
 	
@@ -222,7 +243,7 @@ public class CTGTagTable extends TableInterface {
      * 
      * @return
      */
-    public ContentValues get_content_values(CTGTag c) {
+    public ContentValues getContentValues(CTGTag c) {
     	ContentValues vals = new ContentValues();
     	//prepare info for db insert/update
     	vals.put(CTG_TAG_ID, c.getId());
@@ -242,7 +263,7 @@ public class CTGTagTable extends TableInterface {
 	 * @param record
 	 * @return
 	 */
-	public CTGTag get_from_cursor(Cursor record) {
+	public CTGTag getFromCursor(Cursor record) {
 		CTGTag c= new CTGTag();
 		
 		if (record.getColumnCount() > 8){ //make sure data is in the result.  Read only first entry

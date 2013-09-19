@@ -17,6 +17,7 @@ public final class R {
         public static int main=0x7f030000;
     }
     public static final class string {
+        public static int api_version=0x7f040002;
         public static int app_name=0x7f040001;
         public static int hello=0x7f040000;
     }

@@ -6,19 +6,19 @@ import com.worxforus.ctg.CTGConstants;
 public class CTGTag {
 	//db definitions
 	public static final String CTG_TAG_TABLE = "ctg_tag_table";
-	public static final String CTG_TAG_ID = "ctg_tag_id"; //int
-	public static final String CTG_TAG_NAME = "ctg_tag_name"; //varchar(256)
-	public static final String CTG_TAG_DESC = "ctg_tag_desc"; //text
-	public static final String CTG_PARENT_TAG_REF = "ctg_parent_tag_ref"; //int
-	public static final String CTG_META_STATUS = "ctg_meta_status"; //int
+//	public static final String CTG_TAG_ID = "ctg_tag_id"; //int
+//	public static final String CTG_TAG_NAME = "ctg_tag_name"; //varchar(256)
+//	public static final String CTG_TAG_DESC = "ctg_tag_desc"; //text
+//	public static final String CTG_PARENT_TAG_REF = "ctg_parent_tag_ref"; //int
+//	public static final String CTG_META_STATUS = "ctg_meta_status"; //int
 	public static final String REV = "0.1";
 	public static final String REV_HISTORY0_1 = "Added upload data, uuid, client index";
 	public static final String REV_HISTORY0_0 = "Initial Rev";
-	public static final String CTG_TAG_UPLOAD_DATE = "ctg_tag_upload_date"; //DATETIME
-	//synchronization items
-	public static final String CTG_TAG_CLIENT_INDEX = "ctg_tag_client_index"; //INT
-	public static final String CTG_TAG_CLIENT_UUID = "ctg_tag_client_uuid"; //VARCHAR([UUID_SIZE])
-	public static final int MAX_NAME_LENGTH = 256;
+//	public static final String CTG_TAG_UPLOAD_DATE = "ctg_tag_upload_date"; //DATETIME
+//	//synchronization items
+//	public static final String CTG_TAG_CLIENT_INDEX = "ctg_tag_client_index"; //INT
+//	public static final String CTG_TAG_CLIENT_UUID = "ctg_tag_client_uuid"; //VARCHAR([UUID_SIZE])
+//	public static final int MAX_NAME_LENGTH = 256;
 
 	//Variables
 	protected int id = 0;
@@ -42,8 +42,6 @@ public class CTGTag {
      */
     public void touch() {
     	this.setUpload_datetime(Utils.get_current_datetime_str());
-    	//TODO: Should touch set locally changed?
-    	this.locally_changed =1;
     }
 	//========================-----------------------> getters/setters <-----------------=========================\\
 

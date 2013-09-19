@@ -5,11 +5,9 @@ public class CTGConstants {
 	
 	public static final String APK_CODE = "1"; 
 	public static final String DATABASE_NAME ="CTG";
-	//So testing can be used to mock server
-	private static boolean testMode = false;
-	private static String testHost = "";
 	
-	private static final String CTG_HOST = "http://www.checkliststogo.com/";
+	public static final String CTG_HOST = "http://www.checkliststogo.com/";
+	public static final String CTG_HOST_HTTPS = "https://www.checkliststogo.com/";
 	
 	//HTTP Connections
 	public static final String CTG_LOGIN = "Ajax/ajax_login_interface.php";
@@ -32,23 +30,6 @@ public class CTGConstants {
 	public static final int META_STATUS_DELETED = 1;
 	public static final int META_STATUS_TEMPORARY = 2;
 
-	//Test function helpers
-	public static String getHost() {
-	 if(testMode) {
-		 return CTGConstants.CTG_HOST;
-	 } else {
-		 return CTGConstants.testHost;
-	 }
-	}
-	
-	public static void activateTestHost(String _testHost) {
-		CTGConstants.testMode = true;
-		CTGConstants.testHost = _testHost;
-	}
-	
-	public static void releaseTestHost() {
-		CTGConstants.testMode = false;
-		CTGConstants.testHost = "";
-	}
+
 	
 }
