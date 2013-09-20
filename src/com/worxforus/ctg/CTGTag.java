@@ -5,7 +5,7 @@ import com.worxforus.ctg.CTGConstants;
 
 public class CTGTag {
 	//db definitions
-	public static final String CTG_TAG_TABLE = "ctg_tag_table";
+//	public static final String CTG_TAG_TABLE = "ctg_tag_table";
 //	public static final String CTG_TAG_ID = "ctg_tag_id"; //int
 //	public static final String CTG_TAG_NAME = "ctg_tag_name"; //varchar(256)
 //	public static final String CTG_TAG_DESC = "ctg_tag_desc"; //text
