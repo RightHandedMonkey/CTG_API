@@ -1,18 +1,16 @@
 package com.worxforus.ctg.net;
 
-import com.worxforus.ctg.CTGConstants;
-
 public class CTGWebHelper {
 	//So testing can be used to mock server
-	private static boolean testMode = false;
-	private static String testHost = "";
+	protected static boolean testMode = false;
+	protected static String testHost = "";
 	
 	//Test function helpers
 	public static String getHost() {
 	 if(testMode) {
-		 return CTGConstants.CTG_HOST;
-	 } else {
 		 return CTGWebHelper.testHost;
+	 } else {
+		 return CTGNetConstants.CTG_HOST;
 	 }
 	}
 	

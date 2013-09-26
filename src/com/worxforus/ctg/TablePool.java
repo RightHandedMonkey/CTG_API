@@ -1,10 +1,9 @@
 package com.worxforus.ctg;
 
 import junit.framework.Assert;
-
-import android.app.Application;
 import android.content.Context;
 
+import com.worxforus.ctg.db.CTGChecklistTemplateTable;
 import com.worxforus.ctg.db.CTGTagTable;
 import com.worxforus.db.TableVersionDb;
 
@@ -19,8 +18,10 @@ public class TablePool {
 	private static TablePool instance = new TablePool();
 
 	// databases - these don't need to be static because they will be called from the static instance
-	private CTGTagTable tagTable;
 	private TableVersionDb tableVersionTable;
+
+	private CTGTagTable tagTable;
+	private CTGChecklistTemplateTable ctTable;
 
 	public TablePool() {
 	}
@@ -42,6 +43,14 @@ public class TablePool {
 			self().tableVersionTable = new TableVersionDb(appContext, CTGConstants.DATABASE_NAME);
 		}
 		return self().tableVersionTable;
+	}
+
+	public static CTGChecklistTemplateTable getCTTable(Context appContext) {
+		Assert.assertNotNull(appContext);
+		if (self().ctTable == null) {
+			self().ctTable = new CTGChecklistTemplateTable(appContext);
+		}
+		return self().ctTable;	
 	}
 	
 }

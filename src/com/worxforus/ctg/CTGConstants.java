@@ -5,14 +5,7 @@ public class CTGConstants {
 	
 	public static final String APK_CODE = "1"; 
 	public static final String DATABASE_NAME ="CTG";
-	
-	public static final String CTG_HOST = "http://www.checkliststogo.com/";
-	public static final String CTG_HOST_HTTPS = "https://www.checkliststogo.com/";
-	
-	//HTTP Connections
-	public static final String CTG_LOGIN = "Ajax/ajax_login_interface.php";
-	public static final String CTG_LOGOUT = "cxapp/logout.php";
-	
+		
 	//User Messages
 	public static final String LOGIN_ERROR= "Could not login to server.";
 

@@ -17,7 +17,7 @@ import com.worxforus.ctg.CTGConstants;
 import com.worxforus.ctg.CTGTag;
 import com.worxforus.db.TableInterface;
 
-public class CTGTagTable extends TableInterface {
+public class CTGTagTable extends TableInterface<CTGTag> {
 
 	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
 	public static final String DATABASE_TABLE = "ctg_tag";
@@ -25,7 +25,6 @@ public class CTGTagTable extends TableInterface {
 	// 2 - Added index
 	// 1 - Initial version
 
-	// table fields
 	static int i = 0; // counter for field index
 	public static final String CTG_TAG_ID = "ctg_tag_id"; // int
 	public static final int CTG_TAG_ID_COL = i++;
@@ -68,7 +67,7 @@ public class CTGTagTable extends TableInterface {
 	// Something like: INSERT INTO Log (id, rev_no, description) VALUES ((SELECT
 	// IFNULL(MAX(id), 0)) + 1 FROM Log), 'rev_Id', 'some description')
 
-	private static final String INDEX_1_NAME = "index_1";
+	private static final String INDEX_1_NAME = DATABASE_TABLE+"_index_1";//NOTE: Indexes must be unique across all tables in db
 	private static final String INDEX_1 = "CREATE INDEX " + INDEX_1_NAME
 			+ " ON " + DATABASE_TABLE + " (  `" + CTG_TAG_NAME + "`, `"+ CTG_TAG_LOCALLY_CHANGED + "`, `"
 			+ CTG_META_STATUS + "`, `" + CTG_TAG_UPLOAD_DATE + "`, `"
@@ -121,6 +120,12 @@ public class CTGTagTable extends TableInterface {
 		if (db != null)
 			db.close();
 	}
+	
+	public void dropTable() {
+		db.execSQL("DROP TABLE IF EXISTS "+DATABASE_TABLE);
+		//invalidate table
+		invalidateTable();
+	}
 
 	@Override
 	public void createTable() {
@@ -170,6 +175,12 @@ public class CTGTagTable extends TableInterface {
 				ContentValues cv = getContentValues(t);
 				index = (int) db.replace(DATABASE_TABLE, null, cv);
 				r.last_insert_id = index;
+				//if id > 0 && client_index > 0 - we need to check if we need to delete a locally created object
+				if (t.getId() > 0 && t.getClient_index() > 0) {
+					//delete any locally created objects matching id=0, client_index=x, client_uuid=y
+					removeLocallyCreatedItem(t.getClient_index(), t.getClient_uuid());
+//					db.delete(DATABASE_TABLE, CTG_TAG_ID+" = 0 AND "+CTG_TAG_CLIENT_INDEX+" = ? AND "+CTG_TAG_CLIENT_UUID+" = ?", new String[] {t.getClient_index()+"", t.getClient_uuid()});
+				}
 			} catch( Exception e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
 				r.error = e.getMessage();
@@ -178,7 +189,21 @@ public class CTGTagTable extends TableInterface {
 			return r;
 		}
 	}
+
+	public int removeLocallyCreatedItem(int clientIndex, String clientUUID) {
+		return db.delete(DATABASE_TABLE, CTG_TAG_ID+" = 0 AND "+CTG_TAG_CLIENT_INDEX+" = ? AND "+CTG_TAG_CLIENT_UUID+" = ?", new String[] {clientIndex+"", clientUUID});
+	}
 	
+	public Result insertOrUpdateArrayList(ArrayList<CTGTag> t) {
+		Result r = new Result();
+		beginTransaction();
+		for (CTGTag ctgTag : t) {
+			r.add_results_if_error(insertOrUpdate(ctgTag), "Could not add CTGTag "+t+" to database." );
+		}
+		endTransaction();
+		return r;
+	}
+
 	public CTGTag getEntry(int tagId) {
 		//String where = KEY_NUM+" = "+user_num;
 		CTGTag c= new CTGTag();
@@ -211,7 +236,7 @@ public class CTGTagTable extends TableInterface {
 	 */
 	public Cursor getValidRootEntriesCursor() {
 		return db.query(DATABASE_TABLE, null, 
-				CTG_META_STATUS+" = 0 AND "+CTG_PARENT_TAG_REF+" = 0", null, null, null, CTG_TAG_NAME);
+				CTG_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+CTG_PARENT_TAG_REF+" = 0", null, null, null, CTG_TAG_NAME);
 	}
 	
 	/**
@@ -291,6 +316,7 @@ public class CTGTagTable extends TableInterface {
 
 		@Override
 		public void onCreate(SQLiteDatabase db) {
+			Log.d(getClass().getName(), "Table: "+DATABASE_TABLE+" was not found in db path: "+db.getPath()+"... creating table.");
 			db.execSQL(DATABASE_CREATE);
 			db.execSQL(INDEX_1);
 		}
@@ -316,5 +342,6 @@ public class CTGTagTable extends TableInterface {
 		}
 
 	}
+
 
 }

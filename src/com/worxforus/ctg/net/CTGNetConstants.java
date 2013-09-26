@@ -8,5 +8,15 @@ package com.worxforus.ctg.net;
  *
  */
 public class CTGNetConstants {
+	public static final String CTG_HOST = "http://www.checkliststogo.com/";
+	public static final String CTG_HOST_HTTPS = "https://www.checkliststogo.com/";
 	
+	//Web Connections
+	public static final String CTG_TAG_INTERFACE = "ctg/app/service/android_tag_interface.php";
+	public static final String CTG_CT_INTERFACE = "ctg/app/service/android_ct_interface.php";
+	public static final String CTG_LOGIN = "ctg/app/login.php";
+	public static final String CTG_LOGOUT = "ctg/app/logout.php";
+	
+
+
 }

@@ -47,7 +47,9 @@ public class CTGAuthentication {
     * @return NetResult - NetResult.net_success tells if the login worked or not
     */
    public static NetResult authenticateViaUsernamePassword() {
+	   //TODO: perform authentication here
 	   NetResult result = new NetResult();
+	   
 	   result.net_success = false;
 	   if (result.net_success) {
 		   CTGAuthentication.getInstance().lastLoginTime = System.nanoTime();
