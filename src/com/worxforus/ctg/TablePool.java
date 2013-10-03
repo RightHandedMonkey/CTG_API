@@ -3,6 +3,7 @@ package com.worxforus.ctg;
 import junit.framework.Assert;
 import android.content.Context;
 
+import com.worxforus.ctg.db.CTGChecklistItemTemplateTable;
 import com.worxforus.ctg.db.CTGChecklistTemplateTable;
 import com.worxforus.ctg.db.CTGTagTable;
 import com.worxforus.db.TableVersionDb;
@@ -22,6 +23,7 @@ public class TablePool {
 
 	private CTGTagTable tagTable;
 	private CTGChecklistTemplateTable ctTable;
+	private CTGChecklistItemTemplateTable citTable;
 
 	public TablePool() {
 	}
@@ -51,6 +53,14 @@ public class TablePool {
 			self().ctTable = new CTGChecklistTemplateTable(appContext);
 		}
 		return self().ctTable;	
+	}
+
+	public static CTGChecklistItemTemplateTable getCITTable(Context appContext) {
+		Assert.assertNotNull(appContext);
+		if (self().citTable == null) {
+			self().citTable = new CTGChecklistItemTemplateTable(appContext);
+		}
+		return self().citTable;	
 	}
 	
 }

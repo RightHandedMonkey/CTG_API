@@ -14,6 +14,7 @@ public class CTGNetConstants {
 	//Web Connections
 	public static final String CTG_TAG_INTERFACE = "ctg/app/service/android_tag_interface.php";
 	public static final String CTG_CT_INTERFACE = "ctg/app/service/android_ct_interface.php";
+	public static final String CTG_CIT_INTERFACE = "ctg/app/service/android_cit_interface.php";
 	public static final String CTG_LOGIN = "ctg/app/login.php";
 	public static final String CTG_LOGOUT = "ctg/app/logout.php";
 	
