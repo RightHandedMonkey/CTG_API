@@ -213,7 +213,10 @@ public class CTGChecklistItemTemplate implements SyncInterface<CTGChecklistItemT
 		return getDownloadURL(host);
 	}
 
-/**
+	public boolean requireAuthOnDownload() { return false; }
+	public boolean requireAuthOnUpload() { return true; }
+
+	/**
  * Prepares parameters for sending to webserver.
  * NOTE on first call, we don't know what the toDate is because we get that from server
  * all subsequent calls should resend the toDate to the server to prevent the device getting out of sync with the databse

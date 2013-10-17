@@ -186,6 +186,9 @@ public class CTGRunChecklist implements SyncInterface<CTGRunChecklist>, Serializ
 		return getDownloadURL(host);
 	}
 
+	public boolean requireAuthOnDownload() { return true; }
+	public boolean requireAuthOnUpload() { return true; }
+
 /**
  * Prepares parameters for sending to webserver.
  * NOTE on first call, we don't know what the toDate is because we get that from server

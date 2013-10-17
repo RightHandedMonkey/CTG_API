@@ -35,6 +35,9 @@ public class CTGAuthenticationHelper implements NetAuthenticationHelper {
 			Log.e(this.getClass().getName(), "Could not parse default login failed json string.");
 		}
 	}
+
+	@Override
+	public String getLoginErrorMessage() { return CTGNetConstants.LOGIN_ERROR; }
 	
 	@Override
 	public int checkForLoginError(NetResult netResult) {
@@ -68,10 +71,10 @@ public class CTGAuthenticationHelper implements NetAuthenticationHelper {
 					return NetAuthentication.SERVER_ERROR; //server reported error, not sure what happened
 				}
 			} catch (JSONExceptionWrapper e) {
-				Log.e(this.getClass().getName(), "Could not parse server response.");
+				Log.e(this.getClass().getName(), "Could not parse server response. JSONExceptionWrapper.");
 				return NetAuthentication.SERVER_ERROR; //not sure why we couldn't log in
 			} catch (NullPointerException e) {
-				Log.e(this.getClass().getName(), "Could not parse server response.");
+				Log.e(this.getClass().getName(), "Could not parse server response. NullPointerException.");
 				return NetAuthentication.SERVER_ERROR; //not sure why we couldn't log in
 			}
 			
@@ -88,7 +91,7 @@ public class CTGAuthenticationHelper implements NetAuthenticationHelper {
 		params.add(new BasicNameValuePair(CTGNetConstants.USER_LOGIN_ID, username+""));
 		params.add(new BasicNameValuePair(CTGNetConstants.USER_PASSWORD, password+""));
 		
-		NetResult netResult = NetHandler.handle_post_with_retry(this.getLoginURL(host), params , NetHandler.NETWORK_DEFAULT_RETRY_ATTEMPTS);
+		NetResult netResult = NetHandler.handlePostWithRetry(this.getLoginURL(host), params , NetHandler.NETWORK_DEFAULT_RETRY_ATTEMPTS);
 		//get json object and close network stream
 		NetHandler.handleGenericJsonResponseHelper(netResult, this.getClass().getName());
 		Log.d(this.getClass().getName(), "Performed network login to: "+host);

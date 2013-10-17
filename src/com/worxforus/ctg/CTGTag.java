@@ -139,6 +139,9 @@ public class CTGTag implements SyncInterface<CTGTag>, Serializable {
 		return getDownloadURL(host);
 	}
 
+	public boolean requireAuthOnDownload() { return false; }
+	public boolean requireAuthOnUpload() { return true; }
+
 /**
  * Prepares parameters for sending to webserver.
  * NOTE on first call, we don't know what the toDate is because we get that from server

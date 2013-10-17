@@ -230,7 +230,7 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 			+ CTG_RC_CLIENT_UUID + "    TEXT NOT NULL DEFAULT ''," 
 			+ CTG_RC_LOCALLY_CHANGED + "INTEGER NOT NULL DEFAULT 0," 
 	 */
-	public ArrayList<CTGRunChecklist> getValidItems(int templateRef) {
+	public ArrayList<CTGRunChecklist> getValidItems() {
 		ArrayList<CTGRunChecklist> al = new ArrayList<CTGRunChecklist>();
 		Cursor list = getValidItemsCursor();
 		if (list.moveToFirst()){
