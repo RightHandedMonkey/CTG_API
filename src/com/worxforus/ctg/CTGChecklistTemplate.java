@@ -1,5 +1,6 @@
 package com.worxforus.ctg;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +21,12 @@ import com.worxforus.json.JSONObjectWrapper;
 import com.worxforus.net.SyncInterface;
 import com.worxforus.net.SyncTableManager;
 
-public class CTGChecklistTemplate implements SyncInterface<CTGChecklistTemplate> {
+public class CTGChecklistTemplate implements SyncInterface<CTGChecklistTemplate>, Serializable {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -2937421830536134054L;
 	public static final String REV = "0.1";
 	public static final String REV_HISTORY0_1 = "Added upload data, uuid, client index";
 	public static final String REV_HISTORY0_0 = "Initial Rev";
