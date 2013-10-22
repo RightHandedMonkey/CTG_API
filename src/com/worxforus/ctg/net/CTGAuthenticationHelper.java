@@ -21,6 +21,7 @@ import com.worxforus.net.NetResult;
 public class CTGAuthenticationHelper implements NetAuthenticationHelper {
 
 	public static final String LOGIN_FAILED = "{\"data\":{\"success\":false,\"error\":\"Could not login user on ChecklistsToGo.com\",\"technical_error\":\"\",\"message\":\"User \'sam.bossen@gmail.com\' could not login.\",\"sql\":\"\",\"last_insert_id\":0,\"last_insert_linked_id\":0,\"last_insert_index\":0,\"string\":\"\",\"object\":null},\"result\":true}";
+	public static final String LOGIN_SUCCESS_FROM_CACHE = "{\"data\":{\"success\":true,\"error\":\"\",\"technical_error\":\"\",\"message\":\"User login appears to be available from cache.\",\"sql\":\"\",\"last_insert_id\":0,\"last_insert_linked_id\":0,\"last_insert_index\":0,\"string\":\"\",\"object\":null},\"result\":true}";
 
 	@Override
 	public String getLoginURL(String host) {
@@ -32,16 +33,25 @@ public class CTGAuthenticationHelper implements NetAuthenticationHelper {
 		try {
 			result.object = new JSONObjectWrapper(LOGIN_FAILED);
 		} catch (JSONExceptionWrapper e) {
-			Log.e(this.getClass().getName(), "Could not parse default login failed json string.");
+			throw new RuntimeException("Could not parse default login failed json string.");
+		}
+	}
+	
+	@Override
+	public void markAsLoginSuccessFromCache(NetResult result) {
+		try {
+			result.object = new JSONObjectWrapper(LOGIN_SUCCESS_FROM_CACHE);
+		} catch (JSONExceptionWrapper e) {
+			throw new RuntimeException("Could not parse default cache login json string.");
 		}
 	}
 
 	@Override
 	public String getLoginErrorMessage() { return CTGNetConstants.LOGIN_ERROR; }
 	
+
 	@Override
-	public int checkForLoginError(NetResult netResult) {
-		//NetResult.object should contain JsonObjectWrapper
+	public int peekForNotLoggedInError(NetResult netResult) {
 		if (netResult.net_success == true) {
 			//check json data to figure out what went wrong, ie. login failed, not logged in (not enough info passed), etc
 			JSONObjectWrapper json = ((JSONObjectWrapper) netResult.object);
@@ -61,6 +71,45 @@ public class CTGAuthenticationHelper implements NetAuthenticationHelper {
 					error = json.getString(Result.WEB_ERROR);
 				}
 				
+				if (!success) {
+					if (error.contains(CTGNetConstants.NOT_LOGGED_IN)) {
+						return NetAuthentication.NOT_LOGGED_IN;
+					}
+				}
+			} catch (JSONExceptionWrapper e) {
+			} catch (NullPointerException e) {
+			}
+		}
+		return NetAuthentication.NO_ERRORS;
+	}
+
+	
+	@Override
+	public int validateLoginResponse(NetResult netResult) {
+		//can't check netResult.success because the service that sent the result doesn't know if it was successful or not
+		//		if (netResult.success == true)
+		//			return NetAuthentication.NO_ERRORS;
+
+		//NetResult.object should contain JsonObjectWrapper
+		if (netResult.net_success == true) {
+			//check json data to figure out what went wrong, ie. login failed, not logged in (not enough info passed), etc
+			JSONObjectWrapper json = ((JSONObjectWrapper) netResult.object);
+			//this should be a result object with user in the result.object array
+			try {
+				//check if we get the data object we are expecting, if not check for invalid auth info
+				boolean success = false;
+				String error = "";
+//				if (json.has(CTGNetConstants.CTG_JSON_DATA)) {
+					JSONObjectWrapper jsonData = (JSONObjectWrapper) json.getJSONObject(CTGNetConstants.CTG_JSON_DATA);
+					//try to get error
+					success = jsonData.getBoolean(Result.WEB_SUCCESS);
+					error = jsonData.getString(Result.WEB_ERROR);
+//					
+//				} else {//try to get error from a different page that doesn't use the 'data' object
+//					//look at data from 'root' object
+//					error = json.getString(Result.WEB_ERROR);
+//				}
+//				
 				if (!success) {
 					if (error.contains(CTGNetConstants.NOT_LOGGED_IN)) {
 						return NetAuthentication.NOT_LOGGED_IN;

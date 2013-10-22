@@ -5,6 +5,7 @@ import android.content.Context;
 
 import com.worxforus.ctg.db.CTGChecklistItemTemplateTable;
 import com.worxforus.ctg.db.CTGChecklistTemplateTable;
+import com.worxforus.ctg.db.CTGRunChecklistItemTable;
 import com.worxforus.ctg.db.CTGRunChecklistTable;
 import com.worxforus.ctg.db.CTGTagTable;
 import com.worxforus.db.TableVersionDb;
@@ -26,6 +27,7 @@ public class TablePool {
 	private CTGChecklistTemplateTable ctTable;
 	private CTGChecklistItemTemplateTable citTable;
 	private CTGRunChecklistTable rcTable;
+	private CTGRunChecklistItemTable rciTable;
 
 	public TablePool() {
 	}
@@ -71,6 +73,14 @@ public class TablePool {
 			self().rcTable = new CTGRunChecklistTable(appContext);
 		}
 		return self().rcTable;	
+	}
+
+	public static CTGRunChecklistItemTable getRCITable(Context appContext) {
+		Assert.assertNotNull(appContext);
+		if (self().rciTable == null) {
+			self().rciTable = new CTGRunChecklistItemTable(appContext);
+		}
+		return self().rciTable;	
 	}
 	
 }

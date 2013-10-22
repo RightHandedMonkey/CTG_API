@@ -216,20 +216,6 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 		return r;
 	}
 	
-	/*
-	 * 			+ CTG_RC_ID + " 			INTEGER NOT NULL DEFAULT 0,"
-			+ CTG_RC_TITLE + "    		TEXT NOT NULL DEFAULT ''," 
-			+ CTG_RC_TEMPLATE_REF + "   INTEGER NOT NULL DEFAULT 0," 
-			+ CTG_RC_META_STATUS + "    INTEGER NOT NULL DEFAULT 0,"  
-			+ CTG_RC_BY_USER + "    	INTEGER NOT NULL DEFAULT 0,"  
-			+ CTG_RC_UPLOAD_DATE + "    TEXT," 
-			+ CTG_RC_NUM_ITEMS + "    	INTEGER NOT NULL DEFAULT 0," 
-			+ CTG_RC_NUM_COMPLETE + "   INTEGER NOT NULL DEFAULT 0,"  
-			+ CTG_RC_CLIENT_REF_INDEX +"INTEGER NOT NULL DEFAULT 0," 
-			+ CTG_RC_CLIENT_INDEX + "   INTEGER NOT NULL DEFAULT 0," 
-			+ CTG_RC_CLIENT_UUID + "    TEXT NOT NULL DEFAULT ''," 
-			+ CTG_RC_LOCALLY_CHANGED + "INTEGER NOT NULL DEFAULT 0," 
-	 */
 	public ArrayList<CTGRunChecklist> getValidItems() {
 		ArrayList<CTGRunChecklist> al = new ArrayList<CTGRunChecklist>();
 		Cursor list = getValidItemsCursor();
@@ -334,20 +320,7 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 		return vals;
     }
 
-    	/*
-			+ CTG_RC_ID + " 			INTEGER NOT NULL DEFAULT 0,"
-			+ CTG_RC_TITLE + "    		TEXT NOT NULL DEFAULT ''," 
-			+ CTG_RC_TEMPLATE_REF + "   INTEGER NOT NULL DEFAULT 0," 
-			+ CTG_RC_META_STATUS + "    INTEGER NOT NULL DEFAULT 0,"  
-			+ CTG_RC_BY_USER + "    	INTEGER NOT NULL DEFAULT 0,"  
-			+ CTG_RC_UPLOAD_DATE + "    TEXT," 
-			+ CTG_RC_NUM_ITEMS + "    	INTEGER NOT NULL DEFAULT 0," 
-			+ CTG_RC_NUM_COMPLETE + "   INTEGER NOT NULL DEFAULT 0,"  
-			+ CTG_RC_CLIENT_REF_INDEX +"INTEGER NOT NULL DEFAULT 0," 
-			+ CTG_RC_CLIENT_INDEX + "   INTEGER NOT NULL DEFAULT 0," 
-			+ CTG_RC_CLIENT_UUID + "    TEXT NOT NULL DEFAULT ''," 
-			+ CTG_RC_LOCALLY_CHANGED + "INTEGER NOT NULL DEFAULT 0," 
-    	 */
+
 	/**
 	 * Get the data for the item currently pointed at by the database
 	 * @param record

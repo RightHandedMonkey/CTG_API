@@ -13,6 +13,7 @@ public class CTGNetConstants {
 	
 	//Web Connections
 	public static final String CTG_TAG_INTERFACE = "ctg/app/service/android_tag_interface.php";
+	public static final String CTG_RCI_INTERFACE = "ctg/app/service/android_rci_interface.php";
 	public static final String CTG_RC_INTERFACE = "ctg/app/service/android_rc_interface.php";
 	public static final String CTG_CT_INTERFACE = "ctg/app/service/android_ct_interface.php";
 	public static final String CTG_CIT_INTERFACE = "ctg/app/service/android_cit_interface.php";
