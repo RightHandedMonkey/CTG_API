@@ -109,12 +109,12 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 
 	private SQLiteDatabase db;
 	// holds the app using the db
-	private CTGTagTableDbHelper dbHelper;
+	private TableDbHelper dbHelper;
 
 //	protected int last_version = 0;
 
 	public CTGRunChecklistItemTable(Context _context) {
-		dbHelper = new CTGTagTableDbHelper(_context, DATABASE_NAME, null,
+		dbHelper = new TableDbHelper(_context, DATABASE_NAME, null,
 				DATABASE_VERSION); // DATABASE_VERSION);
 	}
 
@@ -211,8 +211,30 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 				//if id > 0 && client_index > 0 - we need to check if we need to delete a locally created object
 				if (t.getId() > 0 && t.getClientIndex() > 0) {
 					//delete any locally created objects matching id=0, client_index=x, client_uuid=y
-					removeLocallyCreatedItem(t.getClientRunChecklistRefIndex(), t.getChecklistItemTemplateRef(), t.getClientIndex(), t.getClientUUID());
+					removeLocallyCreatedItem(t.getClientRunChecklistRefIndex(), t.getClientChecklistItemTemplateRefIndex(), t.getClientIndex(), t.getClientUUID());
 				}
+			} catch( Exception e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+			return r;
+		}
+	}
+	
+	/**
+	 * Used to update data into the local database
+	 * @param c
+	 * @return
+	 */
+	public Result updateLocal(CTGRunChecklistItem t) {
+		synchronized (DATABASE_TABLE) {
+			Result r = new Result();
+			try {
+				ContentValues cv = getContentValues(t);
+				db.update(DATABASE_TABLE, cv, 
+						CTG_RCI_ID+" = ? AND "+CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+CTG_RCI_CLIENT_CIT_REF_INDEX+" = ? AND "+CTG_RCI_CLIENT_INDEX+" = ? AND "+CTG_RCI_CLIENT_UUID+" = ?", 
+						new String[] {t.getId()+"", t.getClientRunChecklistRefIndex()+"", t.getClientChecklistItemTemplateRefIndex()+"", t.getClientIndex()+"", t.getClientUUID()});
 			} catch( Exception e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
 				r.error = e.getMessage();
@@ -383,9 +405,9 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 	}
 
     // ================------------> helper class <-----------==============\\
-	private static class CTGTagTableDbHelper extends SQLiteOpenHelper {
+	private static class TableDbHelper extends SQLiteOpenHelper {
 
-		public CTGTagTableDbHelper(Context context, String name,
+		public TableDbHelper(Context context, String name,
 				CursorFactory factory, int version) {
 			super(context, name, factory, version);
 		}

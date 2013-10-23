@@ -208,7 +208,18 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 	public void setValue(String value) {
 		this.value = value;
 	}
+	
+	public boolean getChecked() {
+		if (this.value.equals("1") )
+			return true;
+		else 
+			return false;
+	}
 
+	public void setChecked(boolean b) {
+		this.value = b ? "1" : "";
+	}
+	
 	public String getComment() {
 		return comment;
 	}
@@ -257,6 +268,11 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 		return getDownloadURL(host);
 	}
 
+	public void update() {
+		this.setLocally_changed(1);
+		this.touch();
+	}
+	
 	public boolean requireAuthOnDownload() { return true; }
 	public boolean requireAuthOnUpload() { return true; }
 
