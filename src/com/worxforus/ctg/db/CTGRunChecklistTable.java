@@ -1,7 +1,9 @@
 package com.worxforus.ctg.db;
 
+import java.sql.SQLData;
 import java.util.ArrayList;
 
+import junit.framework.Assert;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -14,6 +16,7 @@ import android.util.Log;
 import com.worxforus.Result;
 import com.worxforus.ctg.CTGRunChecklist;
 import com.worxforus.ctg.CTGConstants;
+import com.worxforus.ctg.CTGRunChecklistItem;
 import com.worxforus.db.TableInterface;
 
 public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
@@ -85,6 +88,8 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 			+ CTG_RC_UPLOAD_DATE + "`, `" + CTG_RC_ID + "`, `"
 			+ CTG_RC_LOCALLY_CHANGED + "` )";
 
+	private static final String UPDATE_CLIENT_INDEX = "UPDATE "+DATABASE_TABLE+" SET "+CTG_RC_CLIENT_INDEX+" = (SELECT (MAX("+CTG_RC_CLIENT_INDEX+") + 1) FROM "+DATABASE_TABLE+" WHERE "+CTG_RC_CLIENT_UUID+" = ? ) WHERE ROWID=? ";
+	
 	private SQLiteDatabase db;
 	// holds the app using the db
 	private CTGTagTableDbHelper dbHelper;
@@ -206,6 +211,59 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 				new String[] {clientRefIndex+"", clientIndex+"", clientUUID});
 	}
 	
+
+	public int getNumTimesTemplateUsed(int templateId) {
+		Cursor list = getNumTimesTemplateUsedCursor(templateId);
+		int size = list.getCount();
+		list.close();
+		return size;
+	}
+
+	public Result createLocalRunChecklist(CTGRunChecklist rc) {
+		synchronized (DATABASE_TABLE) {
+			int rowId = -1;
+			Result r = new Result();
+			try {
+				//get latest value of clientIndex and add 1
+				int nextIndex = getNextClientIndex(rc.getClientUUID());
+				rc.setClientIndex(nextIndex);
+				Assert.assertTrue("Could not get the next rci client index for uuid: "+rc.getClientUUID(), nextIndex > 0);
+
+				ContentValues cv = getContentValues(rc);
+				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
+				Assert.assertTrue("Could not insert a locally created run checklist: "+rc.toString(), rowId > 0);
+//				db.execSQL(UPDATE_CLIENT_INDEX, new String[] {rc.getClientUUID(), rowId+""});				
+			} catch( Exception e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+			if (rowId > 0) {
+				//get the newly created database item using the hidden rowid field
+				rc = getByRowid(rowId);
+				r.object = rc;
+			} else {
+				r.technical_error = "Could not add CTGRunChecklist in db. Data: "+rc.toString();
+				r.success = false;
+			}
+			return r;
+		}
+	}
+
+	public int getNextClientIndex(String uuid) {
+		synchronized(this) {
+			int i=1;
+			Cursor c = db.rawQuery("SELECT MAX("+CTG_RC_CLIENT_INDEX+") FROM "+ DATABASE_TABLE+" WHERE "+CTG_RC_CLIENT_UUID+" = ? ", 
+					new String[] { uuid});
+			if (c.moveToFirst()){
+				i = c.getInt(0)+1;
+			}
+			c.close();
+			return i;
+		}
+	}
+	
+
 	public Result insertOrUpdateArrayList(ArrayList<CTGRunChecklist> t) {
 		Result r = new Result();
 		beginTransaction();
@@ -260,6 +318,7 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 				null, null, null, null);
 	}
 	
+	/*
 	public CTGRunChecklist getEntry(int id) {
 		//String where = KEY_NUM+" = "+user_num;
 		CTGRunChecklist c= new CTGRunChecklist();
@@ -271,6 +330,44 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 		}
 		result.close();
 		return c;
+	}*/
+	
+	/**
+	 * Gets the specific item, whether it was created locally or originated from the server.
+	 * @param id - greater than zero from server orginated objects
+	 * @param localIndex - used for locally created objects
+	 * @param uuid - used for locally created objects
+	 * @return The object requested from the database or a new one if not found
+	 */
+	public CTGRunChecklist getEntry(int id, int localIndex, String uuid) {
+		CTGRunChecklist c= new CTGRunChecklist();
+		Cursor result;
+		if (id > 0)
+			result = getEntryCursor(id);
+		else
+			result = getEntryCursor(localIndex, uuid);
+		if (result.moveToFirst() ) { //make sure data is in the result.  Read only first entry
+			c = getFromCursor(result);
+		}
+		result.close();
+		return c;
+	}
+	
+	/**
+	 * Get the cursor that finds a specific server created item
+	 * @return
+	 */
+	protected Cursor getEntryCursor(int id) {
+		return db.query(DATABASE_TABLE, null, CTG_RC_ID+" = ? ", new String[] {id+""}, null, null, null);
+	}
+	
+	/**
+	 * Get the cursor that finds a specific locally created item
+	 * @return
+	 */
+	protected Cursor getEntryCursor(int index, String uuid) {
+		return db.query(DATABASE_TABLE, null, CTG_RC_CLIENT_INDEX+" = ? AND "+CTG_RC_CLIENT_UUID+" = ? ",
+				new String[] {index+"", uuid}, null, null, null);
 	}
 	
 	/**
@@ -295,7 +392,30 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 	protected Cursor getAllEntriesCursor() {
 		return db.query(DATABASE_TABLE, null, null, null, null, null, CTG_RC_ID);
 	}
+
+	protected Cursor getNumTimesTemplateUsedCursor(int templateId) {
+		return db.query(DATABASE_TABLE, null, CTG_RC_TEMPLATE_REF+" = ? AND "+CTG_RC_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL, new String[] {templateId+""}, null, null, CTG_RC_ID);
+	}
 	
+	/**
+	 * To make testing easier.  Not to be used by the actual app.
+	 * @param rowid
+	 * @return
+	 */
+	public CTGRunChecklist getByRowidTest(int rowid) { return getByRowid(rowid); }
+
+	protected CTGRunChecklist getByRowid(int rowid) {
+		CTGRunChecklist c= new CTGRunChecklist();
+		Cursor result= db.query(DATABASE_TABLE, 
+				null, 
+				"ROWID = ? ", new String[] {rowid+""}, null, null, null);
+		if (result.moveToFirst() ) { //make sure data is in the result.  Read only first entry
+			c = getFromCursor(result);
+		}
+		result.close();
+		return c;
+	}
+
 	
 	// ================------------> helpers <-----------==============\\
     /** returns a ContentValues object for database insertion
@@ -382,6 +502,7 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 		}
 
 	}
+
 
 
 }

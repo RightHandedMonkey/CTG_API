@@ -2,18 +2,19 @@ package com.worxforus.ctg.db;
 
 import java.util.ArrayList;
 
+import junit.framework.Assert;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import com.worxforus.Result;
-import com.worxforus.ctg.CTGRunChecklistItem;
 import com.worxforus.ctg.CTGConstants;
+import com.worxforus.ctg.CTGRunChecklistItem;
 import com.worxforus.db.TableInterface;
 
 public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem> {
@@ -106,6 +107,8 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 			+ CTG_RCI_RUN_CHECKLIST_REF+ "`, `"	+ CTG_RCI_CHECKLIST_ITEM_TEMPLATE_REF + "`, `" + CTG_RCI_META_STATUS + "`, `"
 			+ CTG_RCI_UPLOAD_DATE + "`, `" + CTG_RCI_ID + "`, `"
 			+ CTG_RCI_LOCALLY_CHANGED + "` )";
+
+	private static final String UPDATE_CLIENT_INDEX = "UPDATE "+DATABASE_TABLE+" SET "+CTG_RCI_CLIENT_INDEX+" = (SELECT (MAX("+CTG_RCI_CLIENT_INDEX+") + 1) FROM "+DATABASE_TABLE+" WHERE "+CTG_RCI_CLIENT_UUID+" = ?) WHERE ROWID=? ";
 
 	private SQLiteDatabase db;
 	// holds the app using the db
@@ -249,6 +252,86 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 				new String[] {clientRCRefIndex+"", clientCITRefIndex+"", clientIndex+"", clientUUID});
 	}
 	
+	public Result createLocalRunChecklistItems(ArrayList<CTGRunChecklistItem> rciItems) {
+		Result r = new Result();
+		beginTransaction();
+		for (CTGRunChecklistItem item : rciItems) {
+			r.add_results_if_error(createLocal(item), "Could not add CTGRunChecklistItem into to database." );
+		}
+		endTransaction();
+		return r;
+
+	}
+
+	public Result createLocal(CTGRunChecklistItem rci) {
+		synchronized (DATABASE_TABLE) {
+			int rowId = -1;
+			Result r = new Result();
+			try {
+				//get latest value of clientIndex and add 1
+				int nextIndex = getNextClientIndex(rci.getClientUUID());
+				rci.setClientIndex(nextIndex);
+				Assert.assertTrue("Could not get the next rci client index for uuid: "+rci.getClientUUID(), nextIndex > 0);
+				ContentValues cv = getContentValues(rci);
+				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
+				Assert.assertTrue("Could not insert a locally created run checklist item: "+rci.toString(), rowId > 0);
+//				db.execSQL(UPDATE_CLIENT_INDEX, new String[] {rci.getClientUUID(), rowId+""});
+//				Cursor c = createLocalHelper(rci);
+//				if (c.moveToFirst()){
+//					r.object = getFromCursor(c);
+//				}
+				
+//				c.close();
+			} catch( Exception e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+			if (rowId < 1) {
+				r.technical_error = "Could not add CTGRunChecklistItem in db. Data: "+rci.toString();
+				r.success = false;
+			}
+			return r;
+		}
+	}
+	/*
+	 * 	public static final String CTG_RCI_ID = "ctg_rci_id"; //INT
+	public static final String CTG_RCI_RUN_CHECKLIST_REF = "ctg_rci_run_checklist_ref"; //INT
+	public static final String CTG_RCI_CHECKLIST_ITEM_TEMPLATE_REF = "ctg_rci_checklist_item_template_ref";//INT
+	public static final String CTG_RCI_QUESTION = "ctg_rci_question"; // TEXT
+	public static final String CTG_RCI_TYPE = "ctg_rci_type"; // TEXT
+	
+	public static final String CTG_RCI_EXTRA = "ctg_rci_extra"; // TEXT
+	public static final String CTG_RCI_SECTION_ORDER = "ctg_rci_section_order"; // INT
+	public static final String CTG_RCI_SECTION_INDEX = "ctg_rci_section_index"; // INT
+	public static final String CTG_RCI_SECTION_NAME = "ctg_rci_section_name"; // TEXT
+	public static final String CTG_RCI_META_STATUS = "ctg_rci_meta_status"; // INT
+	
+	public static final String CTG_RCI_BY_USER = "ctg_rci_by_user"; // INT
+	public static final String CTG_RCI_UPLOAD_DATE = "ctg_rci_upload_date"; // TEXT
+	public static final String CTG_RCI_VALUE = "ctg_rci_value"; // TEXT
+	public static final String CTG_RCI_COMMENT = "ctg_rci_comment"; // TEXT
+	public static final String CTG_RCI_CLIENT_RC_REF_INDEX = "ctg_rci_client_rc_ref_index"; // INT
+	
+	public static final String CTG_RCI_CLIENT_CIT_REF_INDEX = "ctg_rci_client_cit_ref_index"; // INT
+	public static final String CTG_RCI_CLIENT_INDEX = "ctg_rci_client_index"; // INT
+	public static final String CTG_RCI_CLIENT_UUID = "ctg_rci_client_uuid"; // TEXT
+	public static final String CTG_RCI_LOCALLY_CHANGED = "ctg_rci_locally_changed"; // INT
+	 */
+	
+	//	private static final String UPDATE_CLIENT_INDEX = "UPDATE "+DATABASE_TABLE+" SET "+CTG_RCI_CLIENT_INDEX+" = (SELECT (MAX("+CTG_RCI_CLIENT_INDEX+") + 1) FROM "+DATABASE_TABLE+" WHERE "+CTG_RCI_CLIENT_UUID+" = ?) WHERE ROWID=? ";
+/*
+	public static final String INSERT_LOCAL_SQL = "INSERT INTO "+DATABASE_TABLE+" VALUES (?, ?, ?, ?, ?,  ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?,  ?, (SELECT (MAX("+CTG_RCI_CLIENT_INDEX+", 0) + 1) FROM "+DATABASE_TABLE+" WHERE "+CTG_RCI_CLIENT_UUID+" = ?) , ?, 1 ) ";
+
+	protected Cursor createLocalHelper(CTGRunChecklistItem rci) {
+		return db.rawQuery(INSERT_LOCAL_SQL, new String[]{ 
+				Integer.toString(rci.getId()), Integer.toString(rci.getRunChecklistRef()), Integer.toString(rci.getChecklistItemTemplateRef()), rci.getQuestion(), rci.getType(),
+				rci.getExtra(), Integer.toString(rci.getSectionOrder()), Integer.toString(rci.getSectionIndex()), rci.getSectionName(), Integer.toString(rci.getMeta_status()),
+				Integer.toString(rci.getByUser()), rci.getUploadDatetime(), rci.getValue(), rci.getComment(), Integer.toString(rci.getClientRunChecklistRefIndex()),
+				Integer.toString(rci.getClientChecklistItemTemplateRefIndex()), rci.getClientUUID(), rci.getClientUUID()
+		});
+	}
+	*/
 	public Result insertOrUpdateArrayList(ArrayList<CTGRunChecklistItem> t) {
 		Result r = new Result();
 		beginTransaction();
@@ -260,9 +343,13 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 	}
 	
 	
-	public ArrayList<CTGRunChecklistItem> getValidChecklistItems(int runChecklistRef) {
+	public ArrayList<CTGRunChecklistItem> getValidChecklistItems(int runChecklistRef, int clientRefIndex, String uuid) {
 		ArrayList<CTGRunChecklistItem> al = new ArrayList<CTGRunChecklistItem>();
-		Cursor list = getValidChecklistItemsCursor(runChecklistRef);
+		Cursor list;
+		if (runChecklistRef > 0)
+			list = getValidChecklistItemsCursor(runChecklistRef);
+		else 
+			list = getValidChecklistItemsCursor(clientRefIndex, uuid);
 		if (list.moveToFirst()){
 			do {
 				al.add(getFromCursor(list));
@@ -272,14 +359,39 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 		return al;
 	}
 	
+	
 	/**
-	 * Returns the cursor objects.
+	 * Returns the cursor objects from a server created parent
 	 * @return ArrayList<CTGRunChecklistItem>
 	 */
 	public Cursor getValidChecklistItemsCursor(int runChecklistRef) {
 		return db.query(DATABASE_TABLE, null, 
 				CTG_RCI_RUN_CHECKLIST_REF+" = "+runChecklistRef+" AND "+CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
 				null, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
+	}
+	
+	/**
+	 * Returns the cursor objects from a locally created parent
+	 * @return ArrayList<CTGRunChecklistItem>
+	 */
+	public Cursor getValidChecklistItemsCursor(int clientRefIndex, String uuid) {
+		return db.query(DATABASE_TABLE, null, 
+				CTG_RCI_RUN_CHECKLIST_REF+" = 0 AND "+CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+
+				CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+CTG_RCI_CLIENT_UUID+" = ? ",
+				new String[] { clientRefIndex+"", uuid}, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
+	}
+	
+	public int getNextClientIndex(String uuid) {
+		synchronized(this) {
+			int i=1;
+			Cursor c = db.rawQuery("SELECT MAX("+CTG_RCI_CLIENT_INDEX+") FROM "+ DATABASE_TABLE+" WHERE "+CTG_RCI_CLIENT_UUID+" = ? ", 
+					new String[] { uuid});
+			if (c.moveToFirst()){
+				i = c.getInt(0)+1;
+			}
+			c.close();
+			return i;
+		}
 	}
 	
 	public ArrayList<CTGRunChecklistItem> getUploadItems() {
@@ -304,18 +416,44 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 				null, null, null, null);
 	}
 	
-	public CTGRunChecklistItem getEntry(int id) {
-		//String where = KEY_NUM+" = "+user_num;
+	/**
+	 * Gets the specific item, whether it was created locally or originated from the server.
+	 * @param id - greater than zero from server orginated objects
+	 * @param localIndex - used for locally created objects
+	 * @param uuid - used for locally created objects
+	 * @return The object requested from the database or a new one if not found
+	 */
+	public CTGRunChecklistItem getEntry(int id, int localIndex, String uuid) {
 		CTGRunChecklistItem c= new CTGRunChecklistItem();
-		Cursor result= db.query(DATABASE_TABLE, 
-				null, 
-				CTG_RCI_ID+" = ? ", new String[] {id+""}, null, null, null);
+		Cursor result;
+		if (id > 0)
+			result = getEntryCursor(id);
+		else
+			result = getEntryCursor(localIndex, uuid);
 		if (result.moveToFirst() ) { //make sure data is in the result.  Read only first entry
 			c = getFromCursor(result);
 		}
 		result.close();
 		return c;
 	}
+	
+	/**
+	 * Get the cursor that finds a specific server created item
+	 * @return
+	 */
+	protected Cursor getEntryCursor(int id) {
+		return db.query(DATABASE_TABLE, null, CTG_RCI_ID+" = ? ", new String[] {id+""}, null, null, null);
+	}
+	
+	/**
+	 * Get the cursor that finds a specific locally created item
+	 * @return
+	 */
+	protected Cursor getEntryCursor(int index, String uuid) {
+		return db.query(DATABASE_TABLE, null, CTG_RCI_CLIENT_INDEX+" = ? AND "+CTG_RCI_CLIENT_UUID+" = ? ",
+				new String[] {index+"", uuid}, null, null, null);
+	}
+	
 	
 	/**
 	 * Retrieve all entries for testing purposes
@@ -340,7 +478,25 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 		return db.query(DATABASE_TABLE, null, null, null, null, null, CTG_RCI_ID);
 	}
 	
-	
+	/**
+	 * To make testing easier.  Not to be used by the actual app.
+	 * @param rowid
+	 * @return
+	 */
+	public CTGRunChecklistItem getByRowidTest(int rowid) { return getByRowid(rowid); }
+
+	protected CTGRunChecklistItem getByRowid(int rowid) {
+		CTGRunChecklistItem c= new CTGRunChecklistItem();
+		Cursor result= db.query(DATABASE_TABLE, 
+				null, 
+				"ROWID = ? ", new String[] {rowid+""}, null, null, null);
+		if (result.moveToFirst() ) { //make sure data is in the result.  Read only first entry
+			c = getFromCursor(result);
+		}
+		result.close();
+		return c;
+	}
+
 	// ================------------> helpers <-----------==============\\
     /** returns a ContentValues object for database insertion
      * 
@@ -440,6 +596,7 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 		}
 
 	}
+
 
 
 }

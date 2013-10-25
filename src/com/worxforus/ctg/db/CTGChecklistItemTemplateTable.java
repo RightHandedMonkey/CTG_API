@@ -2,6 +2,7 @@ package com.worxforus.ctg.db;
 
 import java.util.ArrayList;
 
+import junit.framework.Assert;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -15,6 +16,7 @@ import com.worxforus.Result;
 import com.worxforus.ctg.CTGChecklistItemTemplate;
 import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
+import com.worxforus.ctg.CTGRunChecklistItem;
 import com.worxforus.db.TableInterface;
 
 public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistItemTemplate> {
@@ -92,6 +94,8 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 			+ CTG_CIT_TEMPLATE_REF + "`, `" + CTG_CIT_META_STATUS + "`, `"
 			+ CTG_CIT_UPLOAD_DATE + "`, `" + CTG_CIT_ID + "`, `"
 			+ CTG_CIT_LOCALLY_CHANGED + "` )";
+
+	private static final String UPDATE_CLIENT_INDEX = "UPDATE "+DATABASE_TABLE+" SET "+CTG_CIT_CLIENT_INDEX+" = (SELECT (MAX("+CTG_CIT_CLIENT_INDEX+") + 1) FROM "+DATABASE_TABLE+" WHERE "+CTG_CIT_CLIENT_UUID+" = ?) WHERE ROWID=? ";
 
 	private SQLiteDatabase db;
 	// holds the app using the db
@@ -180,6 +184,30 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 		db.setTransactionSuccessful();
 		db.endTransaction();
 	}
+	public Result createLocal(CTGChecklistItemTemplate cit) {
+		synchronized (DATABASE_TABLE) {
+			int rowId = -1;
+			Result r = new Result();
+			try {
+				ContentValues cv = getContentValues(cit);
+				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
+				Assert.assertTrue("Could not insert a locally created checklist item template: "+cit.toString(), rowId > 0);
+				db.execSQL(UPDATE_CLIENT_INDEX, new String[] {cit.getClientUUID(), rowId+""});
+				
+			} catch( Exception e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+			r.last_insert_id = rowId;
+			if (rowId < 1) {
+				r.technical_error = "Could not add CTGChecklistItemTemplate in db. Data: "+cit.toString();
+				r.success = false;
+			}
+			return r;
+		}
+	}
+
 	
 	/**
 	 * Used to insert data into to local database
@@ -225,9 +253,13 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 	}
 	
 	
-	public ArrayList<CTGChecklistItemTemplate> getValidTemplateItems(int templateRef) {
+	public ArrayList<CTGChecklistItemTemplate> getValidTemplateItems(int templateRef, int clientRefIndex, String uuid) {
 		ArrayList<CTGChecklistItemTemplate> al = new ArrayList<CTGChecklistItemTemplate>();
-		Cursor list = getValidTemplateItemsCursor(templateRef);
+		Cursor list;
+		if (templateRef > 0) //get template that was downloaded from the server
+			list = getValidTemplateItemsCursor(templateRef);
+		else //get locally created template
+			list = getValidTemplateItemsCursor(clientRefIndex, uuid);
 		if (list.moveToFirst()){
 			do {
 				al.add(getFromCursor(list));
@@ -245,6 +277,17 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 		return db.query(DATABASE_TABLE, null, 
 				CTG_CIT_TEMPLATE_REF+" = "+templateRef+" AND "+CTG_CIT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
 				null, null, null, CTG_CIT_SECTION_INDEX+", "+CTG_CIT_SECTION_ORDER);
+	}
+	
+	/**
+	 * Returns the cursor objects.
+	 * @return ArrayList<CTGChecklistItemTemplate>
+	 */
+	public Cursor getValidTemplateItemsCursor(int clientRefIndex, String uuid) {
+		return db.query(DATABASE_TABLE, null, 
+				CTG_CIT_TEMPLATE_REF+" = 0 AND "+CTG_CIT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+
+				CTG_CIT_CLIENT_REF_INDEX+" = "+clientRefIndex+" AND "+CTG_CIT_CLIENT_UUID+" = ? ",
+				new String[] {uuid}, null, null, CTG_CIT_SECTION_INDEX+", "+CTG_CIT_SECTION_ORDER);
 	}
 	
 	public ArrayList<CTGChecklistItemTemplate> getUploadItems() {
@@ -397,6 +440,7 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 		}
 
 	}
+
 
 
 }
