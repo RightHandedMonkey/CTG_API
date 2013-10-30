@@ -255,9 +255,21 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 				CTG_CT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+CTG_CT_CAT1_ID+" = "+cat1Id, null, null, null, CTG_CT_TITLE);
 	}
 	
-	public ArrayList<CTGChecklistTemplate> getUserTemplates(int userID) {
+//	public ArrayList<CTGChecklistTemplate> getUserTemplates(int userID) {
+//		ArrayList<CTGChecklistTemplate> al = new ArrayList<CTGChecklistTemplate>();
+//		Cursor list = getUserTemplatesCursor(userID);
+//		if (list.moveToFirst()){
+//			do {
+//				al.add(getFromCursor(list));
+//			} while(list.moveToNext());
+//		}
+//		list.close();
+//		return al;
+//	}
+	
+	public ArrayList<CTGChecklistTemplate> getUserTemplates(int userID, String uuid) {
 		ArrayList<CTGChecklistTemplate> al = new ArrayList<CTGChecklistTemplate>();
-		Cursor list = getUserTemplatesCursor(userID);
+		Cursor list = getUserTemplatesCursor(userID, uuid);
 		if (list.moveToFirst()){
 			do {
 				al.add(getFromCursor(list));
@@ -266,13 +278,23 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 		list.close();
 		return al;
 	}
+	
+//	/**
+//	 * Returns the cursor objects.
+//	 * @return ArrayList<CTGChecklistTemplate>
+//	 */
+//	public Cursor getUserTemplatesCursor(int userID) {
+//		return db.query(DATABASE_TABLE, null, 
+//				CTG_CT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+CTG_CT_BY_USER+" = "+userID, null, null, null, CTG_CT_TITLE);
+//	}
+	
 	/**
 	 * Returns the cursor objects.
 	 * @return ArrayList<CTGChecklistTemplate>
 	 */
-	public Cursor getUserTemplatesCursor(int userID) {
+	public Cursor getUserTemplatesCursor(int userID, String uuid) {
 		return db.query(DATABASE_TABLE, null, 
-			CTG_CT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+CTG_CT_BY_USER+" = "+userID, null, null, null, CTG_CT_TITLE);
+			CTG_CT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND ( "+CTG_CT_BY_USER+" = "+userID+" OR "+CTG_CT_CLIENT_UUID+" = ? )", new String[] {uuid}, null, null, CTG_CT_TITLE);
 	}
 	
 	

@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 
+import android.content.Context;
 import android.util.Log;
 
 import com.worxforus.Result;
@@ -18,7 +19,7 @@ import com.worxforus.net.NetAuthentication.NetAuthenticationHelper;
 import com.worxforus.net.NetResult;
 
 
-public class CTGAuthenticationHelper implements NetAuthenticationHelper {
+public abstract class CTGAuthenticationHelper implements NetAuthenticationHelper {
 
 	public static final String LOGIN_FAILED = "{\"data\":{\"success\":false,\"error\":\"Could not login user on ChecklistsToGo.com\",\"technical_error\":\"\",\"message\":\"User \'sam.bossen@gmail.com\' could not login.\",\"sql\":\"\",\"last_insert_id\":0,\"last_insert_linked_id\":0,\"last_insert_index\":0,\"string\":\"\",\"object\":null},\"result\":true}";
 	public static final String LOGIN_SUCCESS_FROM_CACHE = "{\"data\":{\"success\":true,\"error\":\"\",\"technical_error\":\"\",\"message\":\"User login appears to be available from cache.\",\"sql\":\"\",\"last_insert_id\":0,\"last_insert_linked_id\":0,\"last_insert_index\":0,\"string\":\"\",\"object\":null},\"result\":true}";
@@ -48,8 +49,32 @@ public class CTGAuthenticationHelper implements NetAuthenticationHelper {
 
 	@Override
 	public String getLoginErrorMessage() { return CTGNetConstants.LOGIN_ERROR; }
-	
 
+	@Override
+	public int getUsernum(NetResult result) {
+		int usernum = -1;
+		try {
+			JSONObjectWrapper json = ((JSONObjectWrapper) result.object);
+			JSONObjectWrapper jsonData = (JSONObjectWrapper) json.getJSONObject(CTGNetConstants.CTG_JSON_DATA);
+			//this should be a result object from a net login request
+			String unum = jsonData.getString(Result.WEB_STRING);
+			usernum = Integer.parseInt(unum.trim());
+		} catch (NumberFormatException e) {
+			Log.e(this.getClass().getName(), "Could not read the username from the site");
+		} catch (JSONExceptionWrapper e) {
+			Log.e(this.getClass().getName(), "Could not find the username in the response from the site");
+		} catch (NullPointerException e) {
+			Log.e(this.getClass().getName(), "Empty response from the site");
+		}
+		return usernum;
+	}
+	
+	/**
+	 * Called when a successful login is processed by NetAuthentication
+	 */
+	@Override
+	public abstract void persistUsernum(int usernum);
+	
 	@Override
 	public int peekForNotLoggedInError(NetResult netResult) {
 		if (netResult.net_success == true) {
@@ -99,17 +124,11 @@ public class CTGAuthenticationHelper implements NetAuthenticationHelper {
 				//check if we get the data object we are expecting, if not check for invalid auth info
 				boolean success = false;
 				String error = "";
-//				if (json.has(CTGNetConstants.CTG_JSON_DATA)) {
-					JSONObjectWrapper jsonData = (JSONObjectWrapper) json.getJSONObject(CTGNetConstants.CTG_JSON_DATA);
-					//try to get error
-					success = jsonData.getBoolean(Result.WEB_SUCCESS);
-					error = jsonData.getString(Result.WEB_ERROR);
-//					
-//				} else {//try to get error from a different page that doesn't use the 'data' object
-//					//look at data from 'root' object
-//					error = json.getString(Result.WEB_ERROR);
-//				}
-//				
+				JSONObjectWrapper jsonData = (JSONObjectWrapper) json.getJSONObject(CTGNetConstants.CTG_JSON_DATA);
+				//try to get error
+				success = jsonData.getBoolean(Result.WEB_SUCCESS);
+				error = jsonData.getString(Result.WEB_ERROR);
+
 				if (!success) {
 					if (error.contains(CTGNetConstants.NOT_LOGGED_IN)) {
 						return NetAuthentication.NOT_LOGGED_IN;
@@ -119,6 +138,10 @@ public class CTGAuthenticationHelper implements NetAuthenticationHelper {
 					Log.e(this.getClass().getName(), "Server reported error, but generic login error could not be identified.");
 					return NetAuthentication.SERVER_ERROR; //server reported error, not sure what happened
 				}
+//				else {
+//					//save the usernumber if we got a valid response
+//					netResult.string = jsonData.getString(Result.WEB_STRING);
+//				}
 			} catch (JSONExceptionWrapper e) {
 				Log.e(this.getClass().getName(), "Could not parse server response. JSONExceptionWrapper.");
 				return NetAuthentication.SERVER_ERROR; //not sure why we couldn't log in
@@ -152,6 +175,7 @@ public class CTGAuthenticationHelper implements NetAuthenticationHelper {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
 	
 	
 }
