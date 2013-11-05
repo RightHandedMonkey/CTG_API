@@ -79,6 +79,7 @@ public class CTGChecklistInterface {
 		
 		//create all the CTGRunChecklistItem objects
 		ArrayList<CTGRunChecklistItem> rciItems = new ArrayList<CTGRunChecklistItem>();
+
 		for (CTGChecklistItemTemplate cit : templateItems) {
 			CTGRunChecklistItem rci =  new CTGRunChecklistItem();
 			//fill in data from template

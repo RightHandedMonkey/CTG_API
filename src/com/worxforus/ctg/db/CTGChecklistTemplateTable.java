@@ -2,18 +2,22 @@ package com.worxforus.ctg.db;
 
 import java.util.ArrayList;
 
+import junit.framework.Assert;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteStatement;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.util.Log;
 
 import com.worxforus.Result;
+import com.worxforus.ctg.CTGChecklistItemTemplate;
 import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
+import com.worxforus.ctg.CTGRunChecklistItem;
 import com.worxforus.db.TableInterface;
 
 public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTemplate> {
@@ -194,7 +198,6 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 				if (t.getId() > 0 && t.getClient_index() > 0) {
 					//delete any locally created objects matching id=0, client_index=x, client_uuid=y
 					removeLocallyCreatedItem(t.getClient_index(), t.getClient_uuid());
-//					db.delete(DATABASE_TABLE, CTG_TAG_ID+" = 0 AND "+CTG_TAG_CLIENT_INDEX+" = ? AND "+CTG_TAG_CLIENT_UUID+" = ?", new String[] {t.getClient_index()+"", t.getClient_uuid()});
 				}
 			} catch( Exception e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
@@ -209,6 +212,51 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 		return db.delete(DATABASE_TABLE, CTG_CT_ID+" = 0 AND "+CTG_CT_CLIENT_INDEX+" = ? AND "+CTG_CT_CLIENT_UUID+" = ?", new String[] {clientIndex+"", clientUUID});
 	}
 	
+	private SQLiteStatement bindToReplace(SQLiteStatement stmt, CTGChecklistTemplate ct) {
+		stmt.clearBindings();
+		stmt.bindLong(CTG_CT_ID_COL+1, ct.getId());
+		stmt.bindString(CTG_CT_TITLE_COL+1, ct.getTitle());
+		stmt.bindString(CTG_CT_DESC_COL+1, ct.getDesc());
+		stmt.bindLong(CTG_CT_META_STATUS_COL+1, ct.getMeta_status());
+		stmt.bindLong(CTG_CT_BY_USER_COL+1, ct.getBy_user());
+		stmt.bindString(CTG_CT_UPLOAD_DATE_COL+1, ct.getUpload_datetime());
+		stmt.bindLong(CTG_CT_SHARED_COL+1, ct.getShared());
+		stmt.bindLong(CTG_CT_CAT1_ID_COL+1, ct.getCat1_id());
+		stmt.bindString(CTG_CT_CAT1_NAME_COL+1, ct.getCat1_name());
+		stmt.bindLong(CTG_CT_CAT2_ID_COL+1, ct.getCat2_id());
+		stmt.bindString(CTG_CT_CAT2_NAME_COL+1, ct.getCat2_name());
+		stmt.bindLong(CTG_CT_CLIENT_INDEX_COL+1, ct.getClient_index());
+		stmt.bindString(CTG_CT_CLIENT_UUID_COL+1, ct.getClient_uuid());
+		stmt.bindLong(CTG_CT_LOCALLY_CHANGED_COL+1, ct.getLocally_changed());
+		return stmt;
+
+	}
+
+	
+	public Result insertOrUpdateArrayList(ArrayList<CTGChecklistTemplate> list) {
+		Result r = new Result();
+		String sql = "INSERT OR REPLACE INTO "+DATABASE_TABLE+" VALUES(?,?,?,?,?,  ?,?,?,?,?, ?,?,?,?) "; //15 items
+		SQLiteStatement statement = db.compileStatement(sql);
+		beginTransaction();
+		for (CTGChecklistTemplate item : list) {
+			bindToReplace(statement, item);
+			try {
+				statement.execute();	
+				if (item.getId() > 0 && item.getClient_index() > 0) {
+					removeLocallyCreatedItem(item.getClient_index(), item.getClient_uuid());
+				}
+			} catch(SQLException e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+		}
+		endTransaction();
+		statement.close();
+		return r;
+	}
+	
+	/*
 	public Result insertOrUpdateArrayList(ArrayList<CTGChecklistTemplate> t) {
 		Result r = new Result();
 		beginTransaction();
@@ -218,7 +266,44 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 		endTransaction();
 		return r;
 	}
-
+*/
+	public Result createLocal(CTGChecklistTemplate ct) {
+		synchronized (DATABASE_TABLE) {
+			int rowId = -1;
+			Result r = new Result();
+			try {
+				//get latest value of clientIndex and add 1
+				int nextIndex = getNextClientIndex(ct.getClient_uuid());
+				ct.setClient_index(nextIndex);
+				Assert.assertTrue("Could not get the next Checklist Template client index for uuid: "+ct.getClient_uuid(), nextIndex > 0);
+				ContentValues cv = getContentValues(ct);
+				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
+				Assert.assertTrue("Could not insert a locally created Checklist Template item: "+ct.toString(), rowId > 0);
+			} catch( Exception e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+			if (rowId < 1) {
+				r.technical_error = "Could not add ChecklistTemplate in db. Data: "+ct.toString();
+				r.success = false;
+			}
+			return r;
+		}
+	}
+	
+	public int getNextClientIndex(String uuid) {
+		synchronized(this) {
+			int i=1;
+			Cursor c = db.rawQuery("SELECT MAX("+CTG_CT_CLIENT_INDEX+") FROM "+ DATABASE_TABLE+" WHERE "+CTG_CT_CLIENT_UUID+" = ? ", 
+					new String[] { uuid});
+			if (c.moveToFirst()){
+				i = c.getInt(0)+1;
+			}
+			c.close();
+			return i;
+		}
+	}
 	public CTGChecklistTemplate getEntry(int id) {
 		//String where = KEY_NUM+" = "+user_num;
 		CTGChecklistTemplate c= new CTGChecklistTemplate();

@@ -8,11 +8,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import com.worxforus.Result;
+import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
 import com.worxforus.ctg.CTGRunChecklistItem;
 import com.worxforus.db.TableInterface;
@@ -203,18 +205,18 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 	 * @param c
 	 * @return
 	 */
-	public Result insertOrUpdate(CTGRunChecklistItem t) {
+	public Result insertOrUpdate(CTGRunChecklistItem item) {
 		synchronized (DATABASE_TABLE) {
 			int index = -1;
 			Result r = new Result();
 			try {
-				ContentValues cv = getContentValues(t);
+				ContentValues cv = getContentValues(item);
 				index = (int) db.replace(DATABASE_TABLE, null, cv);
 				r.last_insert_id = index;
 				//if id > 0 && client_index > 0 - we need to check if we need to delete a locally created object
-				if (t.getId() > 0 && t.getClientIndex() > 0) {
+				if (item.getId() > 0 && item.getClientIndex() > 0) {
 					//delete any locally created objects matching id=0, client_index=x, client_uuid=y
-					removeLocallyCreatedItem(t.getClientRunChecklistRefIndex(), t.getClientChecklistItemTemplateRefIndex(), t.getClientIndex(), t.getClientUUID());
+					removeLocallyCreatedItem(item.getClientRunChecklistRefIndex(), item.getClientChecklistItemTemplateRefIndex(), item.getClientIndex(), item.getClientUUID());
 				}
 			} catch( Exception e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
@@ -275,13 +277,6 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 				ContentValues cv = getContentValues(rci);
 				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
 				Assert.assertTrue("Could not insert a locally created run checklist item: "+rci.toString(), rowId > 0);
-//				db.execSQL(UPDATE_CLIENT_INDEX, new String[] {rci.getClientUUID(), rowId+""});
-//				Cursor c = createLocalHelper(rci);
-//				if (c.moveToFirst()){
-//					r.object = getFromCursor(c);
-//				}
-				
-//				c.close();
 			} catch( Exception e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
 				r.error = e.getMessage();
@@ -294,44 +289,57 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 			return r;
 		}
 	}
-	/*
-	 * 	public static final String CTG_RCI_ID = "ctg_rci_id"; //INT
-	public static final String CTG_RCI_RUN_CHECKLIST_REF = "ctg_rci_run_checklist_ref"; //INT
-	public static final String CTG_RCI_CHECKLIST_ITEM_TEMPLATE_REF = "ctg_rci_checklist_item_template_ref";//INT
-	public static final String CTG_RCI_QUESTION = "ctg_rci_question"; // TEXT
-	public static final String CTG_RCI_TYPE = "ctg_rci_type"; // TEXT
-	
-	public static final String CTG_RCI_EXTRA = "ctg_rci_extra"; // TEXT
-	public static final String CTG_RCI_SECTION_ORDER = "ctg_rci_section_order"; // INT
-	public static final String CTG_RCI_SECTION_INDEX = "ctg_rci_section_index"; // INT
-	public static final String CTG_RCI_SECTION_NAME = "ctg_rci_section_name"; // TEXT
-	public static final String CTG_RCI_META_STATUS = "ctg_rci_meta_status"; // INT
-	
-	public static final String CTG_RCI_BY_USER = "ctg_rci_by_user"; // INT
-	public static final String CTG_RCI_UPLOAD_DATE = "ctg_rci_upload_date"; // TEXT
-	public static final String CTG_RCI_VALUE = "ctg_rci_value"; // TEXT
-	public static final String CTG_RCI_COMMENT = "ctg_rci_comment"; // TEXT
-	public static final String CTG_RCI_CLIENT_RC_REF_INDEX = "ctg_rci_client_rc_ref_index"; // INT
-	
-	public static final String CTG_RCI_CLIENT_CIT_REF_INDEX = "ctg_rci_client_cit_ref_index"; // INT
-	public static final String CTG_RCI_CLIENT_INDEX = "ctg_rci_client_index"; // INT
-	public static final String CTG_RCI_CLIENT_UUID = "ctg_rci_client_uuid"; // TEXT
-	public static final String CTG_RCI_LOCALLY_CHANGED = "ctg_rci_locally_changed"; // INT
-	 */
-	
-	//	private static final String UPDATE_CLIENT_INDEX = "UPDATE "+DATABASE_TABLE+" SET "+CTG_RCI_CLIENT_INDEX+" = (SELECT (MAX("+CTG_RCI_CLIENT_INDEX+") + 1) FROM "+DATABASE_TABLE+" WHERE "+CTG_RCI_CLIENT_UUID+" = ?) WHERE ROWID=? ";
-/*
-	public static final String INSERT_LOCAL_SQL = "INSERT INTO "+DATABASE_TABLE+" VALUES (?, ?, ?, ?, ?,  ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?,  ?, (SELECT (MAX("+CTG_RCI_CLIENT_INDEX+", 0) + 1) FROM "+DATABASE_TABLE+" WHERE "+CTG_RCI_CLIENT_UUID+" = ?) , ?, 1 ) ";
 
-	protected Cursor createLocalHelper(CTGRunChecklistItem rci) {
-		return db.rawQuery(INSERT_LOCAL_SQL, new String[]{ 
-				Integer.toString(rci.getId()), Integer.toString(rci.getRunChecklistRef()), Integer.toString(rci.getChecklistItemTemplateRef()), rci.getQuestion(), rci.getType(),
-				rci.getExtra(), Integer.toString(rci.getSectionOrder()), Integer.toString(rci.getSectionIndex()), rci.getSectionName(), Integer.toString(rci.getMeta_status()),
-				Integer.toString(rci.getByUser()), rci.getUploadDatetime(), rci.getValue(), rci.getComment(), Integer.toString(rci.getClientRunChecklistRefIndex()),
-				Integer.toString(rci.getClientChecklistItemTemplateRefIndex()), rci.getClientUUID(), rci.getClientUUID()
-		});
+	private SQLiteStatement bindToReplace(SQLiteStatement stmt, CTGRunChecklistItem cit) {
+		stmt.clearBindings();
+		stmt.bindLong(CTG_RCI_ID_COL+1, cit.getId());
+		stmt.bindLong(CTG_RCI_RUN_CHECKLIST_REF_COL+1, cit.getRunChecklistRef());
+		stmt.bindLong(CTG_RCI_CHECKLIST_ITEM_TEMPLATE_REF_COL+1, cit.getChecklistItemTemplateRef());
+		stmt.bindString(CTG_RCI_QUESTION_COL+1, cit.getQuestion());
+		stmt.bindString(CTG_RCI_TYPE_COL+1, cit.getType());
+		stmt.bindString(CTG_RCI_EXTRA_COL+1, cit.getExtra());
+		stmt.bindLong(CTG_RCI_SECTION_ORDER_COL+1, cit.getSectionOrder());
+		stmt.bindLong(CTG_RCI_SECTION_INDEX_COL+1, cit.getSectionIndex());
+		stmt.bindString(CTG_RCI_SECTION_NAME_COL+1, cit.getSectionName());
+		stmt.bindLong(CTG_RCI_META_STATUS_COL+1, cit.getMeta_status());
+		stmt.bindLong(CTG_RCI_BY_USER_COL+1, cit.getByUser());
+		stmt.bindString(CTG_RCI_UPLOAD_DATE_COL+1, cit.getUploadDatetime());
+		stmt.bindString(CTG_RCI_VALUE_COL+1, cit.getValue());
+		stmt.bindString(CTG_RCI_COMMENT_COL+1, cit.getComment());
+		stmt.bindLong(CTG_RCI_CLIENT_RC_REF_INDEX_COL+1, cit.getClientRunChecklistRefIndex());
+		stmt.bindLong(CTG_RCI_CLIENT_CIT_REF_INDEX_COL+1, cit.getClientChecklistItemTemplateRefIndex());
+		stmt.bindLong(CTG_RCI_CLIENT_INDEX_COL+1, cit.getClientIndex());
+		stmt.bindString(CTG_RCI_CLIENT_UUID_COL+1, cit.getClientUUID());
+		stmt.bindLong(CTG_RCI_LOCALLY_CHANGED_COL+1, cit.getLocally_changed());
+		return stmt;
+
 	}
-	*/
+	
+	public Result insertOrUpdateArrayList(ArrayList<CTGRunChecklistItem> list) {
+		Result r = new Result();
+		String sql = "INSERT OR REPLACE INTO "+DATABASE_TABLE+" VALUES(?,?,?,?,?,  ?,?,?,?,?, ?,?,?,?,?, ?,?,?,?) "; //19 items
+		SQLiteStatement statement = db.compileStatement(sql);
+		beginTransaction();
+		for (CTGRunChecklistItem item : list) {
+			bindToReplace(statement, item);
+			try {
+				statement.execute();	
+				if (item.getId() > 0 && item.getClientIndex() > 0) {
+					//delete any locally created objects matching id=0, client_index=x, client_uuid=y
+					removeLocallyCreatedItem(item.getClientRunChecklistRefIndex(), item.getClientChecklistItemTemplateRefIndex(), item.getClientIndex(), item.getClientUUID());
+				}
+			} catch(SQLException e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+		}
+		endTransaction();
+		statement.close();
+		return r;
+	}
+	
+	/*
 	public Result insertOrUpdateArrayList(ArrayList<CTGRunChecklistItem> t) {
 		Result r = new Result();
 		beginTransaction();
@@ -340,7 +348,7 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 		}
 		endTransaction();
 		return r;
-	}
+	}*/
 	
 	
 	public ArrayList<CTGRunChecklistItem> getValidChecklistItems(int runChecklistRef, int clientRefIndex, String uuid) {

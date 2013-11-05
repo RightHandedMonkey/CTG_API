@@ -10,6 +10,7 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteStatement;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.util.Log;
 
@@ -183,19 +184,18 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 	 * @param c
 	 * @return
 	 */
-	public Result insertOrUpdate(CTGRunChecklist t) {
+	public Result insertOrUpdate(CTGRunChecklist item) {
 		synchronized (DATABASE_TABLE) {
 			int index = -1;
 			Result r = new Result();
 			try {
-				ContentValues cv = getContentValues(t);
+				ContentValues cv = getContentValues(item);
 				index = (int) db.replace(DATABASE_TABLE, null, cv);
 				r.last_insert_id = index;
 				//if id > 0 && client_index > 0 - we need to check if we need to delete a locally created object
-				if (t.getId() > 0 && t.getClientIndex() > 0) {
+				if (item.getId() > 0 && item.getClientIndex() > 0) {
 					//delete any locally created objects matching id=0, client_index=x, client_uuid=y
-					removeLocallyCreatedItem(t.getClientRefIndex(), t.getClientIndex(), t.getClientUUID());
-//					db.delete(DATABASE_TABLE, CTG_TAG_ID+" = 0 AND "+CTG_TAG_CLIENT_INDEX+" = ? AND "+CTG_TAG_CLIENT_UUID+" = ?", new String[] {t.getClient_index()+"", t.getClient_uuid()});
+					removeLocallyCreatedItem(item.getClientRefIndex(), item.getClientIndex(), item.getClientUUID());
 				}
 			} catch( Exception e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
@@ -227,7 +227,7 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 				//get latest value of clientIndex and add 1
 				int nextIndex = getNextClientIndex(rc.getClientUUID());
 				rc.setClientIndex(nextIndex);
-				Assert.assertTrue("Could not get the next rci client index for uuid: "+rc.getClientUUID(), nextIndex > 0);
+				Assert.assertTrue("Could not get the next Run Checklist client index for uuid: "+rc.getClientUUID(), nextIndex > 0);
 
 				ContentValues cv = getContentValues(rc);
 				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
@@ -263,7 +263,48 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 		}
 	}
 	
-
+	private SQLiteStatement bindToReplace(SQLiteStatement stmt, CTGRunChecklist cit) {
+		stmt.clearBindings();
+		stmt.bindLong(CTG_RC_ID_COL+1, cit.getId());
+		stmt.bindString(CTG_RC_TITLE_COL+1, cit.getTitle());
+		stmt.bindLong(CTG_RC_TEMPLATE_REF_COL+1, cit.getTemplateRef());
+		stmt.bindLong(CTG_RC_META_STATUS_COL+1, cit.getMeta_status());
+		stmt.bindLong(CTG_RC_BY_USER_COL+1, cit.getByUser());
+		stmt.bindString(CTG_RC_UPLOAD_DATE_COL+1, cit.getUploadDatetime());
+		stmt.bindLong(CTG_RC_NUM_ITEMS_COL+1, cit.getNumItems());
+		stmt.bindLong(CTG_RC_NUM_COMPLETE_COL+1, cit.getNumComplete());
+		stmt.bindLong(CTG_RC_CLIENT_REF_INDEX_COL+1, cit.getClientRefIndex());
+		stmt.bindLong(CTG_RC_CLIENT_INDEX_COL+1, cit.getClientIndex());
+		stmt.bindString(CTG_RC_CLIENT_UUID_COL+1, cit.getClientUUID());
+		stmt.bindLong(CTG_RC_LOCALLY_CHANGED_COL+1, cit.getLocally_changed());
+		return stmt;
+	}
+	
+	public Result insertOrUpdateArrayList(ArrayList<CTGRunChecklist> list) {
+		Result r = new Result();
+		String sql = "INSERT OR REPLACE INTO "+DATABASE_TABLE+" VALUES(?,?,?,?,?,  ?,?,?,?,?, ?,?) "; //12 items
+		SQLiteStatement statement = db.compileStatement(sql);
+		beginTransaction();
+		for (CTGRunChecklist item : list) {
+			bindToReplace(statement, item);
+			try {
+				statement.execute();	
+				if (item.getId() > 0 && item.getClientIndex() > 0) {
+					//delete any locally created objects matching id=0, client_index=x, client_uuid=y
+					removeLocallyCreatedItem(item.getClientRefIndex(), item.getClientIndex(), item.getClientUUID());
+				}
+			} catch(SQLException e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+		}
+		endTransaction();
+		statement.close();
+		return r;
+	}
+	
+	/*
 	public Result insertOrUpdateArrayList(ArrayList<CTGRunChecklist> t) {
 		Result r = new Result();
 		beginTransaction();
@@ -272,7 +313,7 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 		}
 		endTransaction();
 		return r;
-	}
+	}*/
 	
 	public ArrayList<CTGRunChecklist> getValidItems() {
 		ArrayList<CTGRunChecklist> al = new ArrayList<CTGRunChecklist>();

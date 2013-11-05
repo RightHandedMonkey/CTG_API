@@ -2,18 +2,21 @@ package com.worxforus.ctg.db;
 
 import java.util.ArrayList;
 
+import junit.framework.Assert;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteStatement;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.util.Log;
 
 import com.worxforus.Constants;
 import com.worxforus.Result;
 import com.worxforus.ctg.CTGConstants;
+import com.worxforus.ctg.CTGRunChecklist;
 import com.worxforus.ctg.CTGTag;
 import com.worxforus.db.TableInterface;
 
@@ -167,19 +170,18 @@ public class CTGTagTable extends TableInterface<CTGTag> {
 	 * @param c
 	 * @return
 	 */
-	public Result insertOrUpdate(CTGTag t) {
+	public Result insertOrUpdate(CTGTag item) {
 		synchronized (DATABASE_TABLE) {
 			int index = -1;
 			Result r = new Result();
 			try {
-				ContentValues cv = getContentValues(t);
+				ContentValues cv = getContentValues(item);
 				index = (int) db.replace(DATABASE_TABLE, null, cv);
 				r.last_insert_id = index;
 				//if id > 0 && client_index > 0 - we need to check if we need to delete a locally created object
-				if (t.getId() > 0 && t.getClient_index() > 0) {
+				if (item.getId() > 0 && item.getClient_index() > 0) {
 					//delete any locally created objects matching id=0, client_index=x, client_uuid=y
-					removeLocallyCreatedItem(t.getClient_index(), t.getClient_uuid());
-//					db.delete(DATABASE_TABLE, CTG_TAG_ID+" = 0 AND "+CTG_TAG_CLIENT_INDEX+" = ? AND "+CTG_TAG_CLIENT_UUID+" = ?", new String[] {t.getClient_index()+"", t.getClient_uuid()});
+					removeLocallyCreatedItem(item.getClient_index(), item.getClient_uuid());
 				}
 			} catch( Exception e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
@@ -194,6 +196,45 @@ public class CTGTagTable extends TableInterface<CTGTag> {
 		return db.delete(DATABASE_TABLE, CTG_TAG_ID+" = 0 AND "+CTG_TAG_CLIENT_INDEX+" = ? AND "+CTG_TAG_CLIENT_UUID+" = ?", new String[] {clientIndex+"", clientUUID});
 	}
 	
+	private SQLiteStatement bindToReplace(SQLiteStatement stmt, CTGTag cit) {
+		stmt.clearBindings();
+		stmt.bindLong(CTG_TAG_ID_COL+1, cit.getId());
+		stmt.bindString(CTG_TAG_NAME_COL+1, cit.getName());
+		stmt.bindString(CTG_TAG_DESC_COL+1, cit.getDesc());
+		stmt.bindLong(CTG_PARENT_TAG_REF_COL+1, cit.getParent_ref());
+		stmt.bindLong(CTG_META_STATUS_COL+1, cit.getMeta_status());
+		stmt.bindString(CTG_TAG_UPLOAD_DATE_COL+1, cit.getUpload_datetime());
+		stmt.bindLong(CTG_TAG_CLIENT_INDEX_COL+1, cit.getClient_index());
+		stmt.bindString(CTG_TAG_CLIENT_UUID_COL+1, cit.getClient_uuid());
+		stmt.bindLong(CTG_TAG_LOCALLY_CHANGED_COL+1, cit.getLocally_changed());
+		return stmt;
+	}
+	
+	public Result insertOrUpdateArrayList(ArrayList<CTGTag> list) {
+		Result r = new Result();
+		String sql = "INSERT OR REPLACE INTO "+DATABASE_TABLE+" VALUES(?,?,?,?,?,  ?,?,?,?) "; //9 items
+		SQLiteStatement statement = db.compileStatement(sql);
+		beginTransaction();
+		for (CTGTag item : list) {
+			bindToReplace(statement, item);
+			try {
+				statement.execute();	
+				if (item.getId() > 0 && item.getClient_index() > 0) {
+					//delete any locally created objects matching id=0, client_index=x, client_uuid=y
+					removeLocallyCreatedItem(item.getClient_index(), item.getClient_uuid());
+				}
+			} catch(SQLException e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+		}
+		endTransaction();
+		statement.close();
+		return r;
+	}
+	
+	/*
 	public Result insertOrUpdateArrayList(ArrayList<CTGTag> t) {
 		Result r = new Result();
 		beginTransaction();
@@ -202,6 +243,61 @@ public class CTGTagTable extends TableInterface<CTGTag> {
 		}
 		endTransaction();
 		return r;
+	}*/
+	
+	public Result createLocal(CTGTag tag) {
+		synchronized (DATABASE_TABLE) {
+			int rowId = -1;
+			Result r = new Result();
+			try {
+				//get latest value of clientIndex and add 1
+				int nextIndex = getNextClientIndex(tag.getClient_uuid());
+				tag.setClient_index(nextIndex);
+				Assert.assertTrue("Could not get the next tag client index for uuid: "+tag.getClient_uuid(), nextIndex > 0);
+
+				ContentValues cv = getContentValues(tag);
+				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
+				Assert.assertTrue("Could not insert a locally created tag: "+tag.toString(), rowId > 0);
+			} catch( Exception e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+			if (rowId > 0) {
+				//get the newly created database item using the hidden rowid field
+				tag = getByRowid(rowId);
+				r.object = tag;
+			} else {
+				r.technical_error = "Could not add CTGTag in db. Data: "+tag.toString();
+				r.success = false;
+			}
+			return r;
+		}
+	}
+	
+	protected CTGTag getByRowid(int rowid) {
+		CTGTag c= new CTGTag();
+		Cursor result= db.query(DATABASE_TABLE, 
+				null, 
+				"ROWID = ? ", new String[] {rowid+""}, null, null, null);
+		if (result.moveToFirst() ) { //make sure data is in the result.  Read only first entry
+			c = getFromCursor(result);
+		}
+		result.close();
+		return c;
+	}
+	
+	public int getNextClientIndex(String uuid) {
+		synchronized(this) {
+			int i=1;
+			Cursor c = db.rawQuery("SELECT MAX("+CTG_TAG_CLIENT_INDEX+") FROM "+ DATABASE_TABLE+" WHERE "+CTG_TAG_CLIENT_UUID+" = ? ", 
+					new String[] { uuid});
+			if (c.moveToFirst()){
+				i = c.getInt(0)+1;
+			}
+			c.close();
+			return i;
+		}
 	}
 
 	public CTGTag getEntry(int tagId) {
@@ -297,7 +393,6 @@ public class CTGTagTable extends TableInterface<CTGTag> {
 			c.setDesc(record.getString(CTG_TAG_DESC_COL));
 			c.setParent_ref(record.getInt(CTG_PARENT_TAG_REF_COL));
 			c.setMeta_status(record.getInt(CTG_META_STATUS_COL));
-			
 			c.setUpload_datetime(record.getString(CTG_TAG_UPLOAD_DATE_COL));
 			c.setClient_index(record.getInt(CTG_TAG_CLIENT_INDEX_COL));
 			c.setClient_uuid(record.getString(CTG_TAG_CLIENT_UUID_COL));

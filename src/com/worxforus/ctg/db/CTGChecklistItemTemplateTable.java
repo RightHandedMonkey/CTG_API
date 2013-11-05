@@ -10,6 +10,7 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
+import android.database.sqlite.SQLiteStatement;
 import android.util.Log;
 
 import com.worxforus.Result;
@@ -184,22 +185,24 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 		db.setTransactionSuccessful();
 		db.endTransaction();
 	}
+	
 	public Result createLocal(CTGChecklistItemTemplate cit) {
 		synchronized (DATABASE_TABLE) {
 			int rowId = -1;
 			Result r = new Result();
 			try {
+				//get latest value of clientIndex and add 1
+				int nextIndex = getNextClientIndex(cit.getClientUUID());
+				cit.setClientIndex(nextIndex);
+				Assert.assertTrue("Could not get the next rci client index for uuid: "+cit.getClientUUID(), nextIndex > 0);
 				ContentValues cv = getContentValues(cit);
 				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
-				Assert.assertTrue("Could not insert a locally created checklist item template: "+cit.toString(), rowId > 0);
-				db.execSQL(UPDATE_CLIENT_INDEX, new String[] {cit.getClientUUID(), rowId+""});
-				
+				Assert.assertTrue("Could not insert a locally created run checklist item: "+cit.toString(), rowId > 0);
 			} catch( Exception e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
 				r.error = e.getMessage();
 				r.success = false;
 			}
-			r.last_insert_id = rowId;
 			if (rowId < 1) {
 				r.technical_error = "Could not add CTGChecklistItemTemplate in db. Data: "+cit.toString();
 				r.success = false;
@@ -207,7 +210,19 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 			return r;
 		}
 	}
-
+	
+	public int getNextClientIndex(String uuid) {
+		synchronized(this) {
+			int i=1;
+			Cursor c = db.rawQuery("SELECT MAX("+CTG_CIT_CLIENT_INDEX+") FROM "+ DATABASE_TABLE+" WHERE "+CTG_CIT_CLIENT_UUID+" = ? ", 
+					new String[] { uuid});
+			if (c.moveToFirst()){
+				i = c.getInt(0)+1;
+			}
+			c.close();
+			return i;
+		}
+	}
 	
 	/**
 	 * Used to insert data into to local database
@@ -242,13 +257,47 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 				new String[] {clientRefIndex+"", clientIndex+"", clientUUID});
 	}
 	
-	public Result insertOrUpdateArrayList(ArrayList<CTGChecklistItemTemplate> t) {
+	private SQLiteStatement bindToReplace(SQLiteStatement stmt, CTGChecklistItemTemplate ct) {
+		stmt.clearBindings();
+		stmt.bindLong(CTG_CIT_ID_COL+1, ct.getId());
+		stmt.bindLong(CTG_CIT_TEMPLATE_REF_COL+1, ct.getTemplateRef());
+		stmt.bindString(CTG_CIT_QUESTION_COL+1, ct.getQuestion());
+		stmt.bindString(CTG_CIT_TYPE_COL+1, ct.getType());
+		stmt.bindString(CTG_CIT_EXTRA_COL+1, ct.getExtra());
+		stmt.bindLong(CTG_CIT_SECTION_ORDER_COL+1, ct.getSectionOrder());
+		stmt.bindLong(CTG_CIT_SECTION_INDEX_COL+1, ct.getSectionIndex());
+		stmt.bindString(CTG_CIT_SECTION_NAME_COL+1, ct.getSectionName());
+		stmt.bindLong(CTG_CIT_META_STATUS_COL+1, ct.getMeta_status());
+		stmt.bindLong(CTG_CIT_BY_USER_COL+1, ct.getByUser());
+		stmt.bindString(CTG_CIT_UPLOAD_DATE_COL+1, ct.getUploadDatetime());
+		stmt.bindLong(CTG_CIT_CLIENT_REF_INDEX_COL+1, ct.getClientRefIndex());
+		stmt.bindLong(CTG_CIT_CLIENT_INDEX_COL+1, ct.getClientIndex());
+		stmt.bindString(CTG_CIT_CLIENT_UUID_COL+1, ct.getClientUUID());
+		stmt.bindLong(CTG_CIT_LOCALLY_CHANGED_COL+1, ct.getLocally_changed());
+		return stmt;
+	}
+
+	
+	public Result insertOrUpdateArrayList(ArrayList<CTGChecklistItemTemplate> list) {
 		Result r = new Result();
+		String sql = "INSERT OR REPLACE INTO "+DATABASE_TABLE+" VALUES(?,?,?,?,?,  ?,?,?,?,?, ?,?,?,?,?) "; //15 items
+		SQLiteStatement statement = db.compileStatement(sql);
 		beginTransaction();
-		for (CTGChecklistItemTemplate ctgTag : t) {
-			r.add_results_if_error(insertOrUpdate(ctgTag), "Could not add CTGChecklistItemTemplate "+t+" to database." );
+		for (CTGChecklistItemTemplate item : list) {
+			bindToReplace(statement, item);
+			try {
+				statement.execute();	
+				if (item.getId() > 0 && item.getClientIndex() > 0) {
+					removeLocallyCreatedItem(item.getClientRefIndex(), item.getClientIndex(), item.getClientUUID());
+				}
+			} catch(SQLException e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
 		}
 		endTransaction();
+		statement.close();
 		return r;
 	}
 	

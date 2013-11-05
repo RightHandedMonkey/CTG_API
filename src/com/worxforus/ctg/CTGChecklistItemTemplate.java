@@ -62,7 +62,7 @@ public class CTGChecklistItemTemplate implements SyncInterface<CTGChecklistItemT
 	protected int meta_status = CTGConstants.META_STATUS_NORMAL;
 	protected int byUser = 0;
 	protected String uploadDatetime = ""; //this is the date an item is modified - used to determine if item needs to be downloaded to client
-	protected int clientRefIndex = 0; //client ref index - index of the template created locally on a device (not the server)
+	protected int clientRefIndex = 0; //client ref index - clientIndex of the template created locally on a device (not the server)
 	protected int clientIndex = 0; //index of the item created locally on a device (not the server)
 	protected String clientUUID = ""; //unique id of client when item created on a device (client_index and client_uuid should be unique per item created on all remote devices)
 
@@ -75,7 +75,7 @@ public class CTGChecklistItemTemplate implements SyncInterface<CTGChecklistItemT
 
     @Override
 	public String toString() {
-		return "id: "+id+"\nquestion: "+question+"\ntype: "+type+"\ntemplateRef: "+templateRef+"\nmeta_status: "+meta_status;
+		return "id: "+id+"\nquestion: "+question+"\ntype: "+type+"\ntemplateRef: "+templateRef+"\nclient index: "+clientIndex+"\nclient ref index: "+clientRefIndex+"\nmeta_status: "+meta_status;
 	}
 
 	/**

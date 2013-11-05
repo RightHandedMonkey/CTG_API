@@ -85,7 +85,7 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 
     @Override
 	public String toString() {
-		return "id: "+id+"\nquestion: "+question+"\ntype: "+type+"\nrunChecklistRef: "+runChecklistRef+"\nitemTemplateRef: "+checklistItemTemplateRef+"\nmeta_status: "+meta_status;
+		return "id: "+id+"\nquestion: "+question+"\ntype: "+type+"\nrunChecklistRef: "+runChecklistRef+"\nitemTemplateRef: "+checklistItemTemplateRef+"\nclient index: "+clientIndex+"\nclient RC ref index: "+clientRunChecklistRefIndex+"\nclient CIT ref index: "+clientChecklistItemTemplateRefIndex+"\nclient uuid: "+clientUUID+"\nmeta_status: "+meta_status;
 	}
 
 	/**
