@@ -23,8 +23,9 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 
 	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
 	public static final String DATABASE_TABLE = "ctg_run_checklist_item_table";
-	public static final int TABLE_VERSION = 1;
+	public static final int TABLE_VERSION = 2;
 	// 1 - Initial version
+	// 2 - Updated index to include all client fields
 
 	static int i = 0; // counter for field index
 	public static final String CTG_RCI_ID = "ctg_rci_id"; //INT
@@ -107,7 +108,8 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 	private static final String INDEX_1 = "CREATE INDEX " + INDEX_1_NAME
 			+ " ON " + DATABASE_TABLE + " (  `" + CTG_RCI_SECTION_INDEX + "`, `"+ CTG_RCI_SECTION_ORDER + "`, `"
 			+ CTG_RCI_RUN_CHECKLIST_REF+ "`, `"	+ CTG_RCI_CHECKLIST_ITEM_TEMPLATE_REF + "`, `" + CTG_RCI_META_STATUS + "`, `"
-			+ CTG_RCI_UPLOAD_DATE + "`, `" + CTG_RCI_ID + "`, `"
+			+ CTG_RCI_CLIENT_RC_REF_INDEX+ "`, `"	+ CTG_RCI_CLIENT_CIT_REF_INDEX + "`, `" + CTG_RCI_CLIENT_INDEX + "`, `"
+			+ CTG_RCI_CLIENT_UUID + "`, `"+ CTG_RCI_UPLOAD_DATE + "`, `" + CTG_RCI_ID + "`, `"
 			+ CTG_RCI_LOCALLY_CHANGED + "` )";
 
 	private static final String UPDATE_CLIENT_INDEX = "UPDATE "+DATABASE_TABLE+" SET "+CTG_RCI_CLIENT_INDEX+" = (SELECT (MAX("+CTG_RCI_CLIENT_INDEX+") + 1) FROM "+DATABASE_TABLE+" WHERE "+CTG_RCI_CLIENT_UUID+" = ?) WHERE ROWID=? ";
@@ -272,8 +274,14 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 			try {
 				//get latest value of clientIndex and add 1
 				int nextIndex = getNextClientIndex(rci.getClientUUID());
-				rci.setClientIndex(nextIndex);
 				Assert.assertTrue("Could not get the next rci client index for uuid: "+rci.getClientUUID(), nextIndex > 0);
+				rci.setClientIndex(nextIndex);
+				//get sectionIndex the item is being inserted into - set if less than zero
+				if (rci.getSectionOrder() < 1) {
+					rci.setSectionOrder(getNextSectionOrder(rci));
+				}
+				//need to get latest sectionOrder for that index and add one,  all other items with a higher number need to be reordered
+				r.add_results_if_error(reorderFromSectionOrder(rci), "Could not reorder run checklist items.");
 				ContentValues cv = getContentValues(rci);
 				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
 				Assert.assertTrue("Could not insert a locally created run checklist item: "+rci.toString(), rowId > 0);
@@ -339,18 +347,6 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 		return r;
 	}
 	
-	/*
-	public Result insertOrUpdateArrayList(ArrayList<CTGRunChecklistItem> t) {
-		Result r = new Result();
-		beginTransaction();
-		for (CTGRunChecklistItem ctgTag : t) {
-			r.add_results_if_error(insertOrUpdate(ctgTag), "Could not add CTGRunChecklistItem "+t+" to database." );
-		}
-		endTransaction();
-		return r;
-	}*/
-	
-	
 	public ArrayList<CTGRunChecklistItem> getValidChecklistItems(int runChecklistRef, int clientRefIndex, String uuid) {
 		ArrayList<CTGRunChecklistItem> al = new ArrayList<CTGRunChecklistItem>();
 		Cursor list;
@@ -389,6 +385,20 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 				new String[] { clientRefIndex+"", uuid}, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
 	}
 	
+	public int resetItemsForChecklist(int runChecklistRef, int clientRefIndex, String uuid) {
+		ContentValues cv = new ContentValues();
+		cv.put(CTG_RCI_VALUE, 0); //clear checked value it
+		cv.put(CTG_RCI_LOCALLY_CHANGED, 1); //so values will be marked as uploaded
+		if (runChecklistRef > 0) //don't check client ref indexes - or we could miss items
+			return db.update(DATABASE_TABLE, cv, 
+					CTG_RCI_RUN_CHECKLIST_REF+" = ? AND "+CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL, new String[] { runChecklistRef+""});
+		else //don't check the runChecklistRef
+			return db.update(DATABASE_TABLE, cv, 
+				CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+
+				CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+CTG_RCI_CLIENT_UUID+" = ? ", new String[] { clientRefIndex+"", uuid});
+	}
+
+	
 	public int getNextClientIndex(String uuid) {
 		synchronized(this) {
 			int i=1;
@@ -399,6 +409,67 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 			}
 			c.close();
 			return i;
+		}
+	}
+	
+	public int getNextSectionOrder(CTGRunChecklistItem rci) {
+		synchronized(this) {
+			int i=1;
+			Cursor c;
+			//Note use of String.valueOf() which is faster than +"" and will work if the type changes
+			if (rci.getRunChecklistRef() > 0) { //don't check client ref indexes - or we could miss items
+				c = db.rawQuery("SELECT MAX("+CTG_RCI_SECTION_ORDER+") FROM "+ DATABASE_TABLE+" WHERE "+CTG_RCI_RUN_CHECKLIST_REF+" = ? "+
+						" AND "+CTG_RCI_SECTION_INDEX+" <= ? ", 
+					new String[] { String.valueOf(rci.getRunChecklistRef()), String.valueOf(rci.getSectionIndex()) });
+			} else {
+				c = db.rawQuery("SELECT MAX("+CTG_RCI_SECTION_ORDER+") FROM "+ DATABASE_TABLE+" WHERE "+CTG_RCI_CLIENT_RC_REF_INDEX+" = ? "+
+						" AND "+CTG_RCI_CLIENT_UUID+" = ? AND "+CTG_RCI_SECTION_INDEX+" <= ? ", 
+					new String[] { String.valueOf(rci.getClientRunChecklistRefIndex()), 
+							String.valueOf(rci.getClientUUID()), 
+							String.valueOf(rci.getSectionIndex()) });
+			}
+			if (c.moveToFirst()){
+				i = c.getInt(0)+1;
+			}
+			c.close();
+			return i;
+		}
+	}
+	
+	/**
+	 * This method takes the given item and inspects the current sectionOrder number.
+	 * Any items belonging to the same collection (ie. run checklist, or template, etc) that match the sectionOrder have
+	 * their value incremented by one.  This is to allow the inclusion or reordering of an item.
+	 * 
+	 * This function increases the number to allow for insertion of a new number, but does not ensure that the sectionOrder
+	 * numbers generated are unique.  It is expected they are already defined as unique.
+	 * @param rci
+	 * @return
+	 */
+	public Result reorderFromSectionOrder(CTGRunChecklistItem rci) {
+		synchronized (DATABASE_TABLE) {
+			Result r = new Result();
+			try {
+				ContentValues cv = getContentValues(rci);
+				//for server created linked run checklists
+				//UPDATE ctg_run_checklist_item_table SET ctg_rci_section_order = ctg_rci_section_order +1 WHERE ctg_rci_run_checklist_ref = 0 AND ctg_rci_section_order >= 0
+				if (rci.getRunChecklistRef() > 0) {
+					db.rawQuery("UPDATE "+DATABASE_TABLE+" SET "+CTG_RCI_SECTION_ORDER+"="+CTG_RCI_SECTION_ORDER+" +1 WHERE "+CTG_RCI_RUN_CHECKLIST_REF+" = ? AND "+CTG_RCI_SECTION_ORDER+" >= ?", 
+						new String[] {String.valueOf(rci.getRunChecklistRef()), String.valueOf(rci.getSectionOrder())});
+				} else { //reordering items belonging to a locally created group
+					db.rawQuery("UPDATE "+DATABASE_TABLE+" SET "+CTG_RCI_SECTION_ORDER+"="+CTG_RCI_SECTION_ORDER+" +1 WHERE "+
+							CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+
+							CTG_RCI_CLIENT_UUID+" = ? AND "+CTG_RCI_SECTION_ORDER+" >= ?", 
+							new String[] {String.valueOf(rci.getClientRunChecklistRefIndex()), 
+							String.valueOf(rci.getClientUUID()),
+							String.valueOf(rci.getSectionOrder())});
+				}
+			} catch( Exception e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+			return r;
 		}
 	}
 	
@@ -588,8 +659,11 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 			// called when the version of the existing db is less than the
 			// current
 			Log.w(this.getClass().getName(), "Upgrading table from " + oldVersion + " to " + newVersion);
-//			if (oldVersion < 1) { // if old version was V1, just add field
-//				// create new table
+			
+			if (oldVersion < 1) { // if old version was V1, just redo index
+				db.execSQL("DROP INDEX IF EXISTS "+INDEX_1_NAME);
+				db.execSQL(INDEX_1);
+			}
 //				db.execSQL("DROP TABLE IF EXISTS " + DATABASE_TABLE);
 //				onCreate(db);
 //				Log.d(this.getClass().getName(), "Creating new "+ DATABASE_TABLE + " Table");

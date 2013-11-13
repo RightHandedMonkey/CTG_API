@@ -188,7 +188,12 @@ public class CTGRunChecklist implements SyncInterface<CTGRunChecklist>, Serializ
 
 	public boolean requireAuthOnDownload() { return true; }
 	public boolean requireAuthOnUpload() { return true; }
-
+	
+	public void update() {
+		this.setLocally_changed(1);
+		this.touch();
+	}
+	
 /**
  * Prepares parameters for sending to webserver.
  * NOTE on first call, we don't know what the toDate is because we get that from server

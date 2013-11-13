@@ -195,6 +195,12 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 				int nextIndex = getNextClientIndex(cit.getClientUUID());
 				cit.setClientIndex(nextIndex);
 				Assert.assertTrue("Could not get the next rci client index for uuid: "+cit.getClientUUID(), nextIndex > 0);
+				//get sectionIndex the item is being inserted into - set if less than zero
+				if (cit.getSectionOrder() < 1) {
+					cit.setSectionOrder(getNextSectionOrder(cit));
+				}
+				//need to get latest sectionOrder for that index and add one,  all other items with a higher number need to be reordered
+				r.add_results_if_error(reorderFromSectionOrder(cit), "Could not reorder checklist item templates.");
 				ContentValues cv = getContentValues(cit);
 				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
 				Assert.assertTrue("Could not insert a locally created run checklist item: "+cit.toString(), rowId > 0);
@@ -224,6 +230,69 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 		}
 	}
 	
+	
+	public int getNextSectionOrder(CTGChecklistItemTemplate cit) {
+		synchronized(this) {
+			int i=1;
+			Cursor c;
+			//Note use of String.valueOf() which is faster than +"" and will work if the type changes
+			if (cit.getTemplateRef() > 0) { //don't check client ref indexes - or we could miss items
+				c = db.rawQuery("SELECT MAX("+CTG_CIT_SECTION_ORDER+") FROM "+ DATABASE_TABLE+" WHERE "+CTG_CIT_TEMPLATE_REF+" = ? "+
+						" AND "+CTG_CIT_SECTION_INDEX+" <= ? ", 
+					new String[] { String.valueOf(cit.getTemplateRef()), String.valueOf(cit.getSectionIndex()) });
+			} else {
+				c = db.rawQuery("SELECT MAX("+CTG_CIT_SECTION_ORDER+") FROM "+ DATABASE_TABLE+" WHERE "+CTG_CIT_CLIENT_REF_INDEX+" = ? "+
+						" AND "+CTG_CIT_CLIENT_UUID+" = ? AND "+CTG_CIT_SECTION_INDEX+" <= ? ", 
+					new String[] { String.valueOf(cit.getClientRefIndex()), 
+							String.valueOf(cit.getClientUUID()), 
+							String.valueOf(cit.getSectionIndex()) });
+			}
+			if (c.moveToFirst()){
+				i = c.getInt(0)+1;
+			}
+			c.close();
+			return i;
+		}
+	}
+	
+	/**
+	 * This method takes the given item and inspects the current sectionOrder number.
+	 * Any items belonging to the same collection (ie. run checklist, or template, etc) that match the sectionOrder have
+	 * their value incremented by one.  This is to allow the inclusion or reordering of an item.
+	 * 
+	 * This function increases the number to allow for insertion of a new number, but does not ensure that the sectionOrder
+	 * numbers generated are unique.  It is expected they are already defined as unique.
+	 * @param cit
+	 * @return
+	 */
+ 	public Result reorderFromSectionOrder(CTGChecklistItemTemplate cit) {
+		synchronized (DATABASE_TABLE) {
+			Result r = new Result();
+			try {
+				ContentValues cv = getContentValues(cit);
+				//for server created linked run checklists
+				//UPDATE ctg_run_checklist_item_table SET ctg_rci_section_order = ctg_rci_section_order +1 WHERE ctg_rci_run_checklist_ref = 0 AND ctg_rci_section_order >= 0
+				if (cit.getTemplateRef() > 0) {
+					db.rawQuery("UPDATE "+DATABASE_TABLE+" SET "+CTG_CIT_SECTION_ORDER+"="+CTG_CIT_SECTION_ORDER+" +1 WHERE "+CTG_CIT_TEMPLATE_REF+" = ? AND "+CTG_CIT_SECTION_ORDER+" >= ?", 
+						new String[] {String.valueOf(cit.getTemplateRef()), String.valueOf(cit.getSectionOrder())});
+				} else { //reordering items belonging to a locally created group
+					db.rawQuery("UPDATE "+DATABASE_TABLE+" SET "+CTG_CIT_SECTION_ORDER+"="+CTG_CIT_SECTION_ORDER+" +1 WHERE "+
+							CTG_CIT_CLIENT_REF_INDEX+" = ? AND "+
+							CTG_CIT_CLIENT_UUID+" = ? AND "+CTG_CIT_SECTION_ORDER+" >= ?", 
+							new String[] {String.valueOf(cit.getClientRefIndex()), 
+							String.valueOf(cit.getClientUUID()),
+							String.valueOf(cit.getSectionOrder())});
+				}
+			} catch( Exception e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+			return r;
+		}
+	}
+	 
+	 
 	/**
 	 * Used to insert data into to local database
 	 * @param c

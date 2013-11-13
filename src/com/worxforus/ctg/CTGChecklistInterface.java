@@ -6,10 +6,21 @@ import junit.framework.Assert;
 import android.content.Context;
 
 import com.worxforus.Result;
+import com.worxforus.SyncEntry;
+import com.worxforus.Utils;
+import com.worxforus.app.CITListNotifier;
+import com.worxforus.app.CTListNotifier;
+import com.worxforus.app.RCIListNotifier;
+import com.worxforus.app.RCListNotifier;
+import com.worxforus.app.TagListNotifier;
 import com.worxforus.ctg.db.CTGChecklistItemTemplateTable;
+import com.worxforus.ctg.db.CTGChecklistTemplateTable;
 import com.worxforus.ctg.db.CTGRunChecklistItemTable;
 import com.worxforus.ctg.db.CTGRunChecklistTable;
+import com.worxforus.ctg.db.CTGTagTable;
 import com.worxforus.db.TableManager;
+import com.worxforus.db.TableSyncDb;
+import com.worxforus.net.SyncTableManager;
 
 /**
  * This class is used to help in the creation of checklists on a client device.
@@ -109,5 +120,45 @@ public class CTGChecklistInterface {
 		copyTo.setSectionOrder(copyFrom.getSectionOrder());
 		copyTo.setSectionIndex(copyFrom.getSectionIndex());
 		copyTo.setSectionName(copyFrom.getSectionName());
+	}
+	
+	public static void wipeDatabase(Context context) {
+		CTGRunChecklistTable rcTable = TablePool.getRCTable(context);
+		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rcTable);
+		rcTable.wipeTable();
+		TableManager.releaseConnection(rcTable);
+
+		CTGTagTable ctgTable = TablePool.getTagTable(context);
+		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, ctgTable);
+		ctgTable.wipeTable();
+		TableManager.releaseConnection(ctgTable);
+
+		CTGChecklistTemplateTable ctTable = TablePool.getCTTable(context);
+		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, ctTable);
+		ctTable.wipeTable();
+		TableManager.releaseConnection(ctTable);
+
+		CTGChecklistItemTemplateTable citTable = TablePool.getCITTable(context);
+		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, citTable);
+		citTable.wipeTable();
+		TableManager.releaseConnection(citTable);
+
+		CTGRunChecklistItemTable rciTable = TablePool.getRCITable(context);
+		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rciTable);
+		rciTable.wipeTable();
+		TableManager.releaseConnection(rciTable);
+		
+		//clear sync notifications so data can be redownloaded.
+		TableSyncDb syncDb = new TableSyncDb(context, CTGConstants.DATABASE_NAME);
+		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, syncDb);
+		syncDb.wipeTable();
+		TableManager.releaseConnection(syncDb);
+
+		//now notify the ListViews that the data may have been changed
+		TagListNotifier.getNotifier().updateList();
+		CTListNotifier.getNotifier().updateList();
+		CITListNotifier.getNotifier().updateList();
+		RCListNotifier.getNotifier().updateList();
+		RCIListNotifier.getNotifier().updateList();
 	}
 }
