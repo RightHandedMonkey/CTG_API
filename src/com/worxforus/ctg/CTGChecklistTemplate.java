@@ -187,6 +187,11 @@ public class CTGChecklistTemplate implements SyncInterface<CTGChecklistTemplate>
 		return getDownloadURL(host);
 	}
 
+	public void update() {
+		this.setLocally_changed(1);
+		this.touch();
+	}
+
 	public boolean requireAuthOnDownload() { return false; }
 	public boolean requireAuthOnUpload() { return true; }
 
