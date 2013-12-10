@@ -453,17 +453,19 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 				ContentValues cv = getContentValues(rci);
 				//for server created linked run checklists
 				//UPDATE ctg_run_checklist_item_table SET ctg_rci_section_order = ctg_rci_section_order +1 WHERE ctg_rci_run_checklist_ref = 0 AND ctg_rci_section_order >= 0
+				Cursor c; //capture cursor here so it can be closed properly - without this causes an error: SQLiteException unable to close due to unfinalised statements
 				if (rci.getRunChecklistRef() > 0) {
-					db.rawQuery("UPDATE "+DATABASE_TABLE+" SET "+CTG_RCI_SECTION_ORDER+"="+CTG_RCI_SECTION_ORDER+" +1 WHERE "+CTG_RCI_RUN_CHECKLIST_REF+" = ? AND "+CTG_RCI_SECTION_ORDER+" >= ?", 
+					c= db.rawQuery("UPDATE "+DATABASE_TABLE+" SET "+CTG_RCI_SECTION_ORDER+"="+CTG_RCI_SECTION_ORDER+" +1 WHERE "+CTG_RCI_RUN_CHECKLIST_REF+" = ? AND "+CTG_RCI_SECTION_ORDER+" >= ?", 
 						new String[] {String.valueOf(rci.getRunChecklistRef()), String.valueOf(rci.getSectionOrder())});
 				} else { //reordering items belonging to a locally created group
-					db.rawQuery("UPDATE "+DATABASE_TABLE+" SET "+CTG_RCI_SECTION_ORDER+"="+CTG_RCI_SECTION_ORDER+" +1 WHERE "+
+					c=db.rawQuery("UPDATE "+DATABASE_TABLE+" SET "+CTG_RCI_SECTION_ORDER+"="+CTG_RCI_SECTION_ORDER+" +1 WHERE "+
 							CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+
 							CTG_RCI_CLIENT_UUID+" = ? AND "+CTG_RCI_SECTION_ORDER+" >= ?", 
 							new String[] {String.valueOf(rci.getClientRunChecklistRefIndex()), 
 							String.valueOf(rci.getClientUUID()),
 							String.valueOf(rci.getSectionOrder())});
 				}
+				c.close();
 			} catch( Exception e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
 				r.error = e.getMessage();

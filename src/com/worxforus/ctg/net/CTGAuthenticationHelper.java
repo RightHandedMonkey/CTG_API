@@ -18,7 +18,11 @@ import com.worxforus.net.SyncTableManager;
 import com.worxforus.net.NetAuthentication.NetAuthenticationHelper;
 import com.worxforus.net.NetResult;
 
-
+/**
+ * This class adds functionality specific to the ChecklistToGo API for interaction with the website from an Android device
+ * @author sbossen
+ *
+ */
 public abstract class CTGAuthenticationHelper implements NetAuthenticationHelper {
 
 	public static final String LOGIN_FAILED = "{\"data\":{\"success\":false,\"error\":\"Could not login user on ChecklistsToGo.com\",\"technical_error\":\"\",\"message\":\"User \'sam.bossen@gmail.com\' could not login.\",\"sql\":\"\",\"last_insert_id\":0,\"last_insert_linked_id\":0,\"last_insert_index\":0,\"string\":\"\",\"object\":null},\"result\":true}";
@@ -175,6 +179,7 @@ public abstract class CTGAuthenticationHelper implements NetAuthenticationHelper
 		// TODO Auto-generated method stub
 		return null;
 	}
+
 
 	
 	
