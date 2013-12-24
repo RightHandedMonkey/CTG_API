@@ -34,6 +34,7 @@ public class SyncNetworkDownloadCommand implements Command {
 	private volatile boolean abort = false;
 	private Context c;
 	private int itemsPerPage;
+	private volatile int state= Command.STATE_WAITING;
 	
 	public SyncNetworkDownloadCommand(Context c, int itemsPerPage) {
 		this.c = c;
@@ -42,6 +43,7 @@ public class SyncNetworkDownloadCommand implements Command {
 	
 	@Override
 	public synchronized Result execute() {
+		state = Command.STATE_RUNNING;
 		//Clear the sync db
 		//do any other needed cleanup to reset for a different user
 		Assert.assertNotNull(c);
@@ -97,7 +99,7 @@ public class SyncNetworkDownloadCommand implements Command {
 		}
 		long finishTime = System.nanoTime()/1000000;
 		Utils.LogD(this.getClass().getName(), "Finish CTG Network sync - took "+(finishTime-startTime)+" ms");
-		
+		state = Command.STATE_FINISHED;
         return r;
 		
 	}
@@ -106,6 +108,7 @@ public class SyncNetworkDownloadCommand implements Command {
 		if (abort) {
 			r.success = false;
 			r.technical_error = MESSAGE_ABORT_SYNC;
+			state = Command.STATE_FINISHED;
 			return true;
 		}
 		return false;
@@ -124,6 +127,11 @@ public class SyncNetworkDownloadCommand implements Command {
 	@Override
 	public synchronized void release() {
 		this.c = null;
+	}
+
+	@Override
+	public int getState() {
+		return state;
 	}
 
 }
