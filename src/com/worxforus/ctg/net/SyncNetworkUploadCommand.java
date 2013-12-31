@@ -28,7 +28,7 @@ import com.worxforus.db.TableManager;
 import com.worxforus.net.NetAuthentication;
 import com.worxforus.net.SyncTableManager;
 
-public class SyncNetworkDownloadCommand implements Command {
+public class SyncNetworkUploadCommand implements Command {
 
 	public static final String MESSAGE_ABORT_SYNC="Sync operation has received an abort command.";
 	private volatile boolean abort = false;
@@ -36,7 +36,7 @@ public class SyncNetworkDownloadCommand implements Command {
 	private int itemsPerPage;
 	private volatile int state= Command.STATE_WAITING;
 	
-	public SyncNetworkDownloadCommand(Context c, int itemsPerPage) {
+	public SyncNetworkUploadCommand(Context c, int itemsPerPage) {
 		this.c = c;
 		this.itemsPerPage = itemsPerPage;
 	}
@@ -71,34 +71,32 @@ public class SyncNetworkDownloadCommand implements Command {
 		if (checkAbort(r)) {
 			return r;
 		}
-		r =  sm.handleSyncTableDownload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, ctgTable, new CTGTag(), itemsPerPage, ctagInfo.getDownloadDate());
-		TagListNotifier.getNotifier().updateList();
-		if (checkAbort(r)) {
-			return r;
-		}
-		r.add_results_if_error(sm.handleSyncTableDownload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, ctTable, new CTGChecklistTemplate(), itemsPerPage, ctInfo.getDownloadDate()), "");
-		CTListNotifier.getNotifier().updateList();
-		if (checkAbort(r)) {
-			return r;
-		}
-		r.add_results_if_error(sm.handleSyncTableDownload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, citTable, new CTGChecklistItemTemplate(), itemsPerPage, citInfo.getDownloadDate()), "");
-		CITListNotifier.getNotifier().updateList();
-		
 		//Don't attempt to load pages that require login if we can't login
 		if(NetAuthentication.isReadyForLogin()) {
-			r.add_results_if_error(sm.handleSyncTableDownload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, rcTable, new CTGRunChecklist(), itemsPerPage, rcInfo.getDownloadDate()), "");
+			r =  sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, ctgTable, new CTGTag(), itemsPerPage);
+			TagListNotifier.getNotifier().updateList();
+			if (checkAbort(r)) {
+				return r;
+			}
+			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, ctTable, new CTGChecklistTemplate(), itemsPerPage),"");
+			CTListNotifier.getNotifier().updateList();
+			if (checkAbort(r)) {
+				return r;
+			}
+			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, citTable, new CTGChecklistItemTemplate(), itemsPerPage), "");
+			CITListNotifier.getNotifier().updateList();
+		
+			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, rcTable, new CTGRunChecklist(), itemsPerPage), "");
 			RCListNotifier.getNotifier().updateList();
 			if (checkAbort(r)) {
 				return r;
 			}
-			r.add_results_if_error(sm.handleSyncTableDownload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, rciTable, new CTGRunChecklistItem(), itemsPerPage, rciInfo.getDownloadDate()), "");
+
+			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, rciTable, new CTGRunChecklistItem(), itemsPerPage), "");
 			RCIListNotifier.getNotifier().updateList();
-			if (checkAbort(r)) {
-				return r;
-			}
 		}
 		long finishTime = System.nanoTime()/1000000;
-		Utils.LogD(this.getClass().getName(), "Finish CTG Download sync - took "+(finishTime-startTime)+" ms");
+		Utils.LogD(this.getClass().getName(), "Finish CTG Upload sync - took "+(finishTime-startTime)+" ms");
 		state = Command.STATE_FINISHED;
         return r;
 		

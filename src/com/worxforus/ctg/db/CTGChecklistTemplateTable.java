@@ -18,6 +18,7 @@ import com.worxforus.ctg.CTGChecklistItemTemplate;
 import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
 import com.worxforus.ctg.CTGRunChecklistItem;
+import com.worxforus.ctg.CTGTag;
 import com.worxforus.db.TableInterface;
 
 public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTemplate> {
@@ -480,6 +481,29 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 		return c;
 	}
 
+	
+	public ArrayList<CTGChecklistTemplate> getUploadItems() {
+		ArrayList<CTGChecklistTemplate> al = new ArrayList<CTGChecklistTemplate>();
+		Cursor list = getUploadItemsCursor();
+		if (list.moveToFirst()){
+			do {
+				al.add(getFromCursor(list));
+			} while(list.moveToNext());
+		}
+		list.close();
+		return al;
+	}
+	
+	/**
+	 * Returns the cursor objects.
+	 * @return cursor to get ArrayList<CTGChecklistTemplate>
+	 */
+	public Cursor getUploadItemsCursor() {
+		return db.query(DATABASE_TABLE, null, 
+				CTG_CT_LOCALLY_CHANGED+" > 0",
+				null, null, null, null);
+	}
+	 
 	
     // ================------------> helper class <-----------==============\\
 	private static class CTGTagTableDbHelper extends SQLiteOpenHelper {

@@ -16,7 +16,6 @@ import android.util.Log;
 import com.worxforus.Constants;
 import com.worxforus.Result;
 import com.worxforus.ctg.CTGConstants;
-import com.worxforus.ctg.CTGRunChecklist;
 import com.worxforus.ctg.CTGTag;
 import com.worxforus.db.TableInterface;
 
@@ -399,6 +398,28 @@ public class CTGTagTable extends TableInterface<CTGTag> {
 			c.setLocally_changed(record.getInt(CTG_TAG_LOCALLY_CHANGED_COL));
 		}
 		return c;
+	}
+	
+	public ArrayList<CTGTag> getUploadItems() {
+		ArrayList<CTGTag> al = new ArrayList<CTGTag>();
+		Cursor list = getUploadItemsCursor();
+		if (list.moveToFirst()){
+			do {
+				al.add(getFromCursor(list));
+			} while(list.moveToNext());
+		}
+		list.close();
+		return al;
+	}
+	
+	/**
+	 * Returns the cursor objects.
+	 * @return cursor to get ArrayList<CTGTag>
+	 */
+	public Cursor getUploadItemsCursor() {
+		return db.query(DATABASE_TABLE, null, 
+				CTG_TAG_LOCALLY_CHANGED+" > 0",
+				null, null, null, null);
 	}
 	
     // ================------------> helper class <-----------==============\\

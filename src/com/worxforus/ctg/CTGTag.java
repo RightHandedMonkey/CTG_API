@@ -147,6 +147,7 @@ public class CTGTag implements SyncInterface<CTGTag>, Serializable {
  * NOTE on first call, we don't know what the toDate is because we get that from server
  * all subsequent calls should resend the toDate to the server to prevent the device getting out of sync with the databse
  */
+	@Override
 	public List<NameValuePair> getDownloadParams(int selPage, int limitPerPage, String lastSync, String toDate) {
 	     //if nothing passed, do not send pair
 		 List<NameValuePair> params = new ArrayList<NameValuePair>();
@@ -158,12 +159,14 @@ public class CTGTag implements SyncInterface<CTGTag>, Serializable {
 		return params;
 	}
 
-	public List<NameValuePair> getUploadParams(ArrayList<CTGTag> objects) {
+	@Override
+	public List<NameValuePair> getUploadParams(List<CTGTag> objects) {
 		 List<NameValuePair> params = new ArrayList<NameValuePair>();
 		 return fillInObjectParams(objects, params);
 	}
 
-	public List<NameValuePair> fillInObjectParams(ArrayList<CTGTag> list, List<NameValuePair> params) {
+	@Override
+	public List<NameValuePair> fillInObjectParams(List<CTGTag> list, List<NameValuePair> params) {
 		String array_str="";
 		if (list.size() > 1)
 			array_str="[]";
@@ -233,6 +236,10 @@ public class CTGTag implements SyncInterface<CTGTag>, Serializable {
 		return ( new CTGTag() );
 	}
 
-	
+	@Override
+	public void markUploaded() {
+		this.setLocally_changed(0);		
+	}
+
 	
 }

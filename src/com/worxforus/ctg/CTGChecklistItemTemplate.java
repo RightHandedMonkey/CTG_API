@@ -221,6 +221,7 @@ public class CTGChecklistItemTemplate implements SyncInterface<CTGChecklistItemT
  * NOTE on first call, we don't know what the toDate is because we get that from server
  * all subsequent calls should resend the toDate to the server to prevent the device getting out of sync with the databse
  */
+	@Override
 	public List<NameValuePair> getDownloadParams(int selPage, int limitPerPage, String lastSync, String toDate) {
 	     //if nothing passed, do not send pair
 		 List<NameValuePair> params = new ArrayList<NameValuePair>();
@@ -232,12 +233,14 @@ public class CTGChecklistItemTemplate implements SyncInterface<CTGChecklistItemT
 		return params;
 	}
 
-	public List<NameValuePair> getUploadParams(ArrayList<CTGChecklistItemTemplate> objects) {
+	@Override
+	public List<NameValuePair> getUploadParams(List<CTGChecklistItemTemplate> objects) {
 		 List<NameValuePair> params = new ArrayList<NameValuePair>();
 		 return fillInObjectParams(objects, params);
 	}
 
-	public List<NameValuePair> fillInObjectParams(ArrayList<CTGChecklistItemTemplate> list, List<NameValuePair> params) {
+	@Override
+	public List<NameValuePair> fillInObjectParams(List<CTGChecklistItemTemplate> list, List<NameValuePair> params) {
 		String array_str="";
 		if (list.size() > 1)
 			array_str="[]";
@@ -327,6 +330,10 @@ public class CTGChecklistItemTemplate implements SyncInterface<CTGChecklistItemT
 		return ( new CTGChecklistItemTemplate() );
 	}
 
-	
+	@Override
+	public void markUploaded() {
+		this.setLocally_changed(0);		
+	}
+
 	
 }

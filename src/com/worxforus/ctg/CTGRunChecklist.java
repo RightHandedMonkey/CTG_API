@@ -199,6 +199,7 @@ public class CTGRunChecklist implements SyncInterface<CTGRunChecklist>, Serializ
  * NOTE on first call, we don't know what the toDate is because we get that from server
  * all subsequent calls should resend the toDate to the server to prevent the device getting out of sync with the databse
  */
+	@Override
 	public List<NameValuePair> getDownloadParams(int selPage, int limitPerPage, String lastSync, String toDate) {
 	     //if nothing passed, do not send pair
 		 List<NameValuePair> params = new ArrayList<NameValuePair>();
@@ -210,12 +211,14 @@ public class CTGRunChecklist implements SyncInterface<CTGRunChecklist>, Serializ
 		return params;
 	}
 
-	public List<NameValuePair> getUploadParams(ArrayList<CTGRunChecklist> objects) {
+	@Override
+	public List<NameValuePair> getUploadParams(List<CTGRunChecklist> objects) {
 		 List<NameValuePair> params = new ArrayList<NameValuePair>();
 		 return fillInObjectParams(objects, params);
 	}
 
-	public List<NameValuePair> fillInObjectParams(ArrayList<CTGRunChecklist> list, List<NameValuePair> params) {
+	@Override
+	public List<NameValuePair> fillInObjectParams(List<CTGRunChecklist> list, List<NameValuePair> params) {
 		String array_str="";
 		if (list.size() > 1)
 			array_str="[]";
@@ -293,6 +296,10 @@ public class CTGRunChecklist implements SyncInterface<CTGRunChecklist>, Serializ
 		return ( new CTGRunChecklist() );
 	}
 
-	
+	@Override
+	public void markUploaded() {
+		this.setLocally_changed(0);		
+	}
+
 	
 }

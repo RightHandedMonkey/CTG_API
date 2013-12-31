@@ -1,6 +1,6 @@
 <resources>
 
     <string name="app_name">CTG_API</string>
-    <string name="api_version">Alpha 0.01</string>
+    <string name="api_version">Alpha 0.02</string>
     
 </resources>

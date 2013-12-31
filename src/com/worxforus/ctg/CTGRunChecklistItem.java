@@ -273,14 +273,16 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 		this.touch();
 	}
 	
+	
 	public boolean requireAuthOnDownload() { return true; }
 	public boolean requireAuthOnUpload() { return true; }
 
-	/**
+/**
  * Prepares parameters for sending to webserver.
  * NOTE on first call, we don't know what the toDate is because we get that from server
  * all subsequent calls should resend the toDate to the server to prevent the device getting out of sync with the databse
  */
+	@Override
 	public List<NameValuePair> getDownloadParams(int selPage, int limitPerPage, String lastSync, String toDate) {
 	     //if nothing passed, do not send pair
 		 List<NameValuePair> params = new ArrayList<NameValuePair>();
@@ -292,7 +294,8 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 		return params;
 	}
 
-	public List<NameValuePair> getUploadParams(ArrayList<CTGRunChecklistItem> objects) {
+	@Override
+	public List<NameValuePair> getUploadParams(List<CTGRunChecklistItem> objects) {
 		 List<NameValuePair> params = new ArrayList<NameValuePair>();
 		 return fillInObjectParams(objects, params);
 	}
@@ -300,7 +303,8 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 	/**
 	 * Used for uploading data
 	 */
-	public List<NameValuePair> fillInObjectParams(ArrayList<CTGRunChecklistItem> list, List<NameValuePair> params) {
+	@Override
+	public List<NameValuePair> fillInObjectParams(List<CTGRunChecklistItem> list, List<NameValuePair> params) {
 		String array_str="";
 		if (list.size() > 1)
 			array_str="[]";
@@ -328,10 +332,6 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 		return params;
 	}
 
-	/**
-	 * TODO: Will eventually need to pass a pool of objects here instead of creating each
-
-	 */
 	@Override
 	public Result parseJSONtoArrayList(JSONArrayWrapper jsonArr, Pool<CTGRunChecklistItem> pool) {
 		Result r = new Result();
@@ -404,6 +404,13 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 		return ( new CTGRunChecklistItem() );
 	}
 
-	
+
+	@Override
+	public void markUploaded() {
+		this.setLocally_changed(0);		
+	}
+
+
+
 	
 }

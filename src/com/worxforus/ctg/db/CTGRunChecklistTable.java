@@ -351,7 +351,7 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 	
 	/**
 	 * Returns the cursor objects.
-	 * @return ArrayList<CTGRunChecklist>
+	 * @return cursor to get ArrayList<CTGRunChecklist>
 	 */
 	public Cursor getUploadItemsCursor() {
 		return db.query(DATABASE_TABLE, null, 

@@ -422,7 +422,7 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 	
 	/**
 	 * Returns the cursor objects.
-	 * @return ArrayList<CTGChecklistItemTemplate>
+	 * @return cursor to get ArrayList<CTGChecklistItemTemplate>
 	 */
 	public Cursor getUploadItemsCursor() {
 		return db.query(DATABASE_TABLE, null, 
