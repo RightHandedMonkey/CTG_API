@@ -385,6 +385,13 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 				new String[] { clientRefIndex+"", uuid}, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
 	}
 	
+	/**
+	 * This method clears the checklist item if it was set or not and also modified the update date.
+	 * @param runChecklistRef
+	 * @param clientRefIndex
+	 * @param uuid
+	 * @return
+	 */
 	public int resetItemsForChecklist(int runChecklistRef, int clientRefIndex, String uuid) {
 		ContentValues cv = new ContentValues();
 		cv.put(CTG_RCI_VALUE, 0); //clear checked value it

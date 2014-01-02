@@ -44,10 +44,8 @@ public class CTGChecklistInterface {
 	public static Result createRunChecklistFromTemplate(CTGChecklistTemplate template, String uuid, Context context) {
 		Result result;
 		CTGRunChecklist rc = new CTGRunChecklist();
+		rc.update(); //mark as locally changed
 		associateRCwithCT(template, rc);
-//		rc.setTitle(template.getTitle());
-//		rc.setTemplateRef(template.getId());
-//		rc.setClientRefIndex(template.getClient_index());
 		rc.setClientUUID(uuid);
 		CTGRunChecklistTable rcTable = TablePool.getRCTable(context);
 		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rcTable);
@@ -94,13 +92,11 @@ public class CTGChecklistInterface {
 
 		for (CTGChecklistItemTemplate cit : templateItems) {
 			CTGRunChecklistItem rci =  new CTGRunChecklistItem();
+			rci.update(); //mark as locally updated.
 			//fill in data from template
 			CTGChecklistInterface.copyCITtoRCI(cit, rci);
 			//associate with checklist
 			associateRCIwithRC(rc, rci);
-//			rci.setRunChecklistRef(rc.getId());
-//			rci.setClientRunChecklistRefIndex(rc.getClientIndex());
-//			rci.setClientUUID(rc.getClientUUID());
 			rciItems.add(rci);
 		}
 
