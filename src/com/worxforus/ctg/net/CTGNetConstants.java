@@ -32,5 +32,5 @@ public class CTGNetConstants {
 	public static final String NOT_LOGGED_IN = "Please login to access your items";
 	public static final String LOGIN_ERROR = "Could not login user";
 
-
+	public static int DEFAULT_ITEMS_TO_SEND = 100; //This is the number of items sent via the network
 }
