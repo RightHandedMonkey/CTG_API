@@ -371,7 +371,9 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 				setExtra(tmp);
 
 			setSectionOrder(obj.getInt(SECTION_ORDER));
-			setSectionIndex(obj.getInt(SECTION_INDEX));
+			tmp =obj.get(SECTION_INDEX).toString(); 
+			if (!tmp.equals("null"))
+				setSectionIndex(obj.getInt(SECTION_INDEX));
 
 			tmp =obj.get(SECTION_NAME).toString(); 
 			if (!tmp.equals("null"))
@@ -387,9 +389,16 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 			tmp =obj.get(COMMENT).toString(); 
 			if (!tmp.equals("null"))
 				setComment(tmp);
-			setClientRunChecklistRefIndex(obj.getInt(CLIENT_RC_REF_INDEX));
-			setClientChecklistItemTemplateRefIndex(obj.getInt(CLIENT_CIT_REF_INDEX));
-			setClientIndex(obj.getInt(CLIENT_INDEX));
+			
+			tmp =obj.get(CLIENT_RC_REF_INDEX).toString(); 
+			if (!tmp.equals("null"))
+				setClientRunChecklistRefIndex(obj.getInt(CLIENT_RC_REF_INDEX));
+			tmp =obj.get(CLIENT_CIT_REF_INDEX).toString(); 
+			if (!tmp.equals("null"))
+				setClientChecklistItemTemplateRefIndex(obj.getInt(CLIENT_CIT_REF_INDEX));
+			tmp =obj.get(CLIENT_INDEX).toString(); 
+			if (!tmp.equals("null"))
+				setClientIndex(obj.getInt(CLIENT_INDEX));
 			setClientUUID(obj.getString(CLIENT_UUID));
 		} catch (JSONExceptionWrapper e) {
 			result.technical_error += "Could not parse JSON info:"+e.getMessage();

@@ -43,7 +43,7 @@ public class CTGRunChecklist implements SyncInterface<CTGRunChecklist>, Serializ
 	public static final String UPLOAD_DATETIME ="upload_datetime";
 	public static final String NUM_ITEMS="num_items";
 	public static final String NUM_COMPLETE="num_complete";
-	public static final String CLIENT_REF_INDEX ="client_ref_index";
+	public static final String CLIENT_REF_INDEX ="client_ref_index"; //for when checklist template was created locally
 	public static final String CLIENT_INDEX ="client_index";
 	public static final String CLIENT_UUID ="client_uuid";
 	
