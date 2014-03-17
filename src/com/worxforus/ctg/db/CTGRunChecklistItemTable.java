@@ -370,8 +370,8 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 	 */
 	public Cursor getValidChecklistItemsCursor(int runChecklistRef, int clientRefIndex, String uuid) {
 		return db.query(DATABASE_TABLE, null, 
-				CTG_RCI_RUN_CHECKLIST_REF+" = ? AND "+CTG_RCI_RUN_CHECKLIST_REF+" > 0 OR ( "+
-				CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+CTG_RCI_CLIENT_UUID+" = ? AND "+CTG_RCI_CLIENT_RC_REF_INDEX+" > 0) AND "+
+				"("+CTG_RCI_RUN_CHECKLIST_REF+" = ? AND "+CTG_RCI_RUN_CHECKLIST_REF+" > 0 OR ( "+
+				CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+CTG_RCI_CLIENT_UUID+" = ? AND "+CTG_RCI_CLIENT_RC_REF_INDEX+" > 0) ) AND "+
 				CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
 				new String[] { runChecklistRef+"", clientRefIndex+"", uuid}, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
 	}
