@@ -291,6 +291,21 @@ public class CTGRunChecklist implements SyncInterface<CTGRunChecklist>, Serializ
 		return result;
 	}
 
+	public void copy(CTGRunChecklist copyFrom) {
+		setLocally_changed(copyFrom.getLocally_changed());
+		setId(copyFrom.getId());
+		setTitle(copyFrom.getTitle());
+		setTemplateRef(copyFrom.getTemplateRef());		
+		setMeta_status(copyFrom.getMeta_status());
+		setByUser(copyFrom.getByUser());
+		setUploadDatetime(copyFrom.getUploadDatetime());
+		setNumItems(copyFrom.getNumItems());
+		setNumComplete(copyFrom.getNumComplete());
+		setClientRefIndex(copyFrom.getClientRefIndex());
+		setClientIndex(copyFrom.getClientIndex());
+		setClientUUID(copyFrom.getClientUUID());
+	}
+	
 	@Override
 	public CTGRunChecklist createObject() {
 		return ( new CTGRunChecklist() );
@@ -298,7 +313,7 @@ public class CTGRunChecklist implements SyncInterface<CTGRunChecklist>, Serializ
 
 	@Override
 	public void markUploaded() {
-		this.setLocally_changed(0);		
+		this.setLocally_changed(0);
 	}
 
 	

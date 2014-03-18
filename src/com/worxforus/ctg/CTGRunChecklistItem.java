@@ -369,20 +369,20 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 			tmp =obj.get(EXTRA).toString(); 
 			if (!tmp.equals("null"))
 				setExtra(tmp);
-
+			
 			setSectionOrder(obj.getInt(SECTION_ORDER));
 			tmp =obj.get(SECTION_INDEX).toString(); 
 			if (!tmp.equals("null"))
 				setSectionIndex(obj.getInt(SECTION_INDEX));
-
+			
 			tmp =obj.get(SECTION_NAME).toString(); 
 			if (!tmp.equals("null"))
 				setSectionName(tmp);
-
+			
 			setMeta_status(obj.getInt(META_STATUS));
 			setByUser(obj.getInt(BY_USER));
 			setUploadDatetime(obj.getString(UPLOAD_DATE));
-
+			
 			tmp =obj.get(VALUE).toString(); 
 			if (!tmp.equals("null"))
 				setValue(tmp);
@@ -406,6 +406,28 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 			Log.e(this.getClass().getName(), e.getMessage());
 		}
 		return result;
+	}
+	
+	public void copy(CTGRunChecklistItem copyFrom) {
+		setLocally_changed(copyFrom.getLocally_changed()); //allows set to not changed locally when importing from a JSON object
+		setId(copyFrom.getId());
+		setRunChecklistRef(copyFrom.getRunChecklistRef());		
+		setChecklistItemTemplateRef(copyFrom.getChecklistItemTemplateRef());		
+		setQuestion(copyFrom.getQuestion());
+		setType(copyFrom.getType());
+		setExtra(copyFrom.getExtra());
+		setSectionOrder(copyFrom.getSectionOrder());
+		setSectionIndex(copyFrom.getSectionIndex());
+		setSectionName(copyFrom.getSectionName());
+		setMeta_status(copyFrom.getMeta_status());
+		setByUser(copyFrom.getByUser());
+		setUploadDatetime(copyFrom.getUploadDatetime());
+		setValue(copyFrom.getValue());
+		setComment(copyFrom.getComment());
+		setClientRunChecklistRefIndex(copyFrom.getClientRunChecklistRefIndex());
+		setClientChecklistItemTemplateRefIndex(copyFrom.getClientChecklistItemTemplateRefIndex());
+		setClientIndex(copyFrom.getClientIndex());
+		setClientUUID(copyFrom.getClientUUID());
 	}
 
 	@Override
