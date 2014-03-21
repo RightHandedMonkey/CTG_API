@@ -77,14 +77,10 @@ public class CTGTagTable extends TableInterface<CTGTag> {
 			+ CTG_TAG_CLIENT_UUID + "` )";
 
 	private SQLiteDatabase db;
-	// holds the app using the db
 	private CTGTagTableDbHelper dbHelper;
 
-//	protected int last_version = 0;
-
 	public CTGTagTable(Context _context) {
-		dbHelper = new CTGTagTableDbHelper(_context, DATABASE_NAME, null,
-				DATABASE_VERSION); // DATABASE_VERSION);
+		dbHelper = new CTGTagTableDbHelper(_context, DATABASE_NAME, null, DATABASE_VERSION);
 	}
 
 	/**
@@ -125,7 +121,6 @@ public class CTGTagTable extends TableInterface<CTGTag> {
 	
 	public void dropTable() {
 		db.execSQL("DROP TABLE IF EXISTS "+DATABASE_TABLE);
-		//invalidate table
 		invalidateTable();
 	}
 
