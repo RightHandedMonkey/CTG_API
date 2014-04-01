@@ -132,6 +132,35 @@ public class CTGChecklistInterface {
 		copyTo.setSectionName(copyFrom.getSectionName());
 	}
 	
+	public static Result handleReorderRCIs(CTGRunChecklistItem from, CTGRunChecklistItem to, Context c) {
+		//reorder, touch then save everything at and above the section order for the given 'to' item
+		//set the 'from' item location to the new 'to' item location, touch then save it.
+		Result r = new Result();
+		CTGRunChecklistItemTable rciTable = TablePool.getRCITable(c);
+		TableManager.acquireConnection(c, CTGConstants.DATABASE_NAME, rciTable);
+		//if moving down the list, get the items after the current 'to' item
+		ArrayList<CTGRunChecklistItem> list; 
+		if (from.getSectionOrder() < to.getSectionOrder()) {
+			//moving down the list - so we are inserting after the selected item.
+			to.setSectionOrder(to.getSectionOrder()+1);
+		} //else - for moving up, we just use the section order of the item we are moving to
+		list = rciTable.getOtherItemsToReorder(from, to);
+		//Just add one to each item in the list
+		for (CTGRunChecklistItem rci : list) {
+			rci.setSectionOrder(rci.getSectionOrder()+1);
+			rci.update();
+		}
+		//now update the target item
+		from.setSectionIndex(to.getSectionIndex());
+		from.setSectionName(to.getSectionName());
+		from.setSectionOrder(to.getSectionOrder());
+		from.update();
+		list.add(from);
+		r = rciTable.insertOrUpdateArrayList(list);
+		TableManager.releaseConnection(rciTable);
+		return r;
+	}
+		
 	public static void wipeDatabase(Context context) {
 		CTGRunChecklistTable rcTable = TablePool.getRCTable(context);
 		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rcTable);

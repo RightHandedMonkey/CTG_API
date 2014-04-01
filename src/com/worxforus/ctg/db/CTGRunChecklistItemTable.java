@@ -14,6 +14,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import com.worxforus.Result;
+import com.worxforus.Utils;
 import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
 import com.worxforus.ctg.CTGRunChecklistItem;
@@ -97,7 +98,6 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 			+ " PRIMARY KEY(" + CTG_RCI_ID + ", "+ CTG_RCI_CLIENT_RC_REF_INDEX + ", " 
 			+ CTG_RCI_CLIENT_CIT_REF_INDEX + ", " + CTG_RCI_CLIENT_INDEX + ", " + CTG_RCI_CLIENT_UUID + " ) " + 
 			")";
-
 
 	// NOTE: When adding to the table items added locally: i.e. no id field, the
 	// client needs to put in the client_uuid and client_index
@@ -338,7 +338,7 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 				}
 			} catch(SQLException e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
-				r.error = e.getMessage();
+				r.technical_error = e.getMessage();
 				r.success = false;
 			}
 		}
@@ -494,6 +494,59 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 		}
 	}
 	
+	/**
+	 * This function will return a cursor for the items that will need to be updated when moving the position of an RCI object.
+	 * NOTE: This will include the item being moved along with the other items to be reordered.
+	 * 
+	 * Worst case is when one item was created locally and hasn't been given a server id yet, and the other one has a server id
+	 * @param from
+	 * @param to
+	 * @return
+	 */
+	public Cursor getItemsToReorderCursor(CTGRunChecklistItem from, CTGRunChecklistItem to) {
+		//get best matching RC id information
+		int rc_id=to.getRunChecklistRef();
+		int client_rc_index=to.getClientRunChecklistRefIndex();
+		String uuid=to.getClientUUID();
+		if (rc_id < 1) rc_id = from.getRunChecklistRef();
+		if (client_rc_index < 1) client_rc_index = from.getClientRunChecklistRefIndex();
+		if (uuid.length() < 1) uuid = from.getClientUUID();
+		
+		String where = CTG_RCI_SECTION_ORDER+" >= ? AND ( ("+CTG_RCI_RUN_CHECKLIST_REF+" = ? AND "+CTG_RCI_RUN_CHECKLIST_REF+" > 0) OR "+
+				"("+CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+CTG_RCI_CLIENT_UUID+" = ? AND "+CTG_RCI_CLIENT_RC_REF_INDEX+" > 0) )";
+		Utils.LogD(this.getClass().getName(), "getItemsToReorderCursor(..) called - to_section_order:"+to.getSectionOrder()+", rc ref:"+rc_id+", client rc ref index:"+client_rc_index+", where sql: "+where);
+		//for server created linked run checklists
+		//or items belonging to a locally created group
+		return db.query(DATABASE_TABLE, null, where,
+				new String[] {to.getSectionOrder()+"", rc_id+"", 
+				client_rc_index+"", uuid}, null, null, CTG_RCI_SECTION_ORDER);
+	}
+
+
+	/**
+	 * 	
+	 * This function will gather the items that will need to be updated when moving the position of an RCI object.
+	 * NOTE: This will NOT include the item being moved, only the other items to be reordered.
+	 * @param from
+	 * @param to
+	 * @return
+	 */
+	public ArrayList<CTGRunChecklistItem> getOtherItemsToReorder(CTGRunChecklistItem from, CTGRunChecklistItem to) {
+		ArrayList<CTGRunChecklistItem> al = new ArrayList<CTGRunChecklistItem>();
+		Cursor list = getItemsToReorderCursor(from, to);
+		if (list.moveToFirst()){
+			do {
+				CTGRunChecklistItem item = getFromCursor(list);
+				if (item.hasMatchingId(from)) //ignore it, this is the one being moved and will be handled after the items are reordered
+					continue;
+				al.add(item);
+			} while(list.moveToNext());
+		}
+		list.close();
+		Utils.LogD(this.getClass().getName(), "Items to be reordered: "+al.size());
+		return al;
+	}
+	
 	public ArrayList<CTGRunChecklistItem> getUploadItems() {
 		ArrayList<CTGRunChecklistItem> al = new ArrayList<CTGRunChecklistItem>();
 		Cursor list = getUploadItemsCursor();
@@ -575,7 +628,7 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 	 * @return
 	 */
 	protected Cursor getAllEntriesCursor() {
-		return db.query(DATABASE_TABLE, null, null, null, null, null, CTG_RCI_ID);
+		return db.query(DATABASE_TABLE, null, null, null, null, null, CTG_RCI_ID+", "+CTG_RCI_CLIENT_INDEX);
 	}
 	
 	/**
@@ -597,6 +650,8 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 		return c;
 	}
 
+
+	
 	// ================------------> helpers <-----------==============\\
     /** returns a ContentValues object for database insertion
      * 

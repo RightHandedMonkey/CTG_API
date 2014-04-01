@@ -273,6 +273,21 @@ public class CTGRunChecklistItem implements SyncInterface<CTGRunChecklistItem>, 
 		this.touch();
 	}
 	
+	/**
+	 * Checks to see if the one object's id actually links to this one.
+	 * Used when checking to see if an object is the same, if it has just been moved for example. 
+	 * @param compareTo
+	 * @return
+	 */
+	public boolean hasMatchingId(CTGRunChecklistItem compareTo) {
+		//if this is a server item we just need to check the id
+		if(this.id > 0) {
+			return (this.id == compareTo.id); 
+		} else {
+			//this is a locally created item so client index and client uuid must match
+			return (this.clientIndex == compareTo.clientIndex && this.clientUUID.equals(compareTo.clientUUID));
+		}
+	}
 	
 	public boolean requireAuthOnDownload() { return true; }
 	public boolean requireAuthOnUpload() { return true; }
