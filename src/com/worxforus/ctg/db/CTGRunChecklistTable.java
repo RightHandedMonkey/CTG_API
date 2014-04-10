@@ -232,7 +232,6 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 				ContentValues cv = getContentValues(rc);
 				rowId = (int) db.insert(DATABASE_TABLE, null, cv);
 				Assert.assertTrue("Could not insert a locally created run checklist: "+rc.toString(), rowId > 0);
-//				db.execSQL(UPDATE_CLIENT_INDEX, new String[] {rc.getClientUUID(), rowId+""});				
 			} catch( Exception e ) {
 				Log.e(this.getClass().getName(), e.getMessage());
 				r.error = e.getMessage();
