@@ -20,6 +20,8 @@ import com.worxforus.net.NetResult;
 
 /**
  * This class adds functionality specific to the ChecklistToGo API for interaction with the website from an Android device
+ * AuthenticationHelper is an abstract class that has all the functionality for the various login features.  
+ * It abstracts out the persistUsernum(...) function since persisting data should be the responsibility of an app object, not the network framework
  * @author sbossen
  *
  */
@@ -142,10 +144,7 @@ public abstract class CTGAuthenticationHelper implements NetAuthenticationHelper
 					Log.e(this.getClass().getName(), "Server reported error, but generic login error could not be identified.");
 					return NetAuthentication.SERVER_ERROR; //server reported error, not sure what happened
 				}
-//				else {
-//					//save the usernumber if we got a valid response
-//					netResult.string = jsonData.getString(Result.WEB_STRING);
-//				}
+
 			} catch (JSONExceptionWrapper e) {
 				Log.e(this.getClass().getName(), "Could not parse server response. JSONExceptionWrapper.");
 				return NetAuthentication.SERVER_ERROR; //not sure why we couldn't log in

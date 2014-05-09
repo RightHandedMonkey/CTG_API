@@ -212,7 +212,28 @@ public class CTGChecklistItemTemplate implements SyncInterface<CTGChecklistItemT
 	public String getUploadURL(String host) {
 		return getDownloadURL(host);
 	}
-
+	
+	public void update() {
+		this.setLocally_changed(1);
+		this.touch();
+	}
+	
+	/**
+	 * Checks to see if the one object's id actually links to this one.
+	 * Used when checking to see if an object is the same, if it has just been moved for example. 
+	 * @param compareTo
+	 * @return
+	 */
+	public boolean hasMatchingId(CTGChecklistItemTemplate compareTo) {
+		//if this is a server item we just need to check the id
+		if(this.id > 0) {
+			return (this.id == compareTo.id); 
+		} else {
+			//this is a locally created item so client index and client uuid must match
+			return (this.clientIndex == compareTo.clientIndex && this.clientUUID.equals(compareTo.clientUUID));
+		}
+	}
+	
 	public boolean requireAuthOnDownload() { return false; }
 	public boolean requireAuthOnUpload() { return true; }
 

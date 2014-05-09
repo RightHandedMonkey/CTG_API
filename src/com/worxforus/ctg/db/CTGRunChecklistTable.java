@@ -73,8 +73,7 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 			+ CTG_RC_CLIENT_INDEX + "   INTEGER NOT NULL DEFAULT 0," 
 			+ CTG_RC_CLIENT_UUID + "    TEXT NOT NULL DEFAULT ''," 
 			+ CTG_RC_LOCALLY_CHANGED +" INTEGER NOT NULL DEFAULT 0," 
-			+ " PRIMARY KEY(" + CTG_RC_ID + ", "+ CTG_RC_CLIENT_REF_INDEX + ", " 
-			+ CTG_RC_CLIENT_INDEX + ", " + CTG_RC_CLIENT_UUID + " ) " + 
+			+ " PRIMARY KEY(" + CTG_RC_ID + ", " + CTG_RC_CLIENT_INDEX + ", " + CTG_RC_CLIENT_UUID + " ) " + 
 			")";
 
 	// NOTE: When adding to the table items added locally: i.e. no id field, the
@@ -205,7 +204,32 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 			return r;
 		}
 	}
-
+	
+	/**
+	 * Used to update data into the database.  
+	 * Note: this function will not work to update the RC_ID with a server id, 
+	 * since that is the primary key used for the lookup. 
+	 * Instead use the insertOrUpdate(...) function
+	 * @param c
+	 * @return
+	 */
+	public Result update(CTGRunChecklist t) {
+		synchronized (DATABASE_TABLE) {
+			Result r = new Result();
+			try {
+				ContentValues cv = getContentValues(t);
+				db.update(DATABASE_TABLE, cv, 
+						CTG_RC_ID+" = ? AND "+CTG_RC_CLIENT_INDEX+" = ? AND "+CTG_RC_CLIENT_UUID+" = ?", 
+						new String[] {t.getId()+"", t.getClientIndex()+"", t.getClientUUID()});
+			} catch( Exception e ) {
+				Log.e(this.getClass().getName(), e.getMessage());
+				r.error = e.getMessage();
+				r.success = false;
+			}
+			return r;
+		}
+	}
+	
 	public int removeLocallyCreatedItem(int clientRefIndex, int clientIndex, String clientUUID) {
 		return db.delete(DATABASE_TABLE, CTG_RC_ID+" = 0 AND "+CTG_RC_CLIENT_REF_INDEX+" = ? AND "+CTG_RC_CLIENT_INDEX+" = ? AND "+CTG_RC_CLIENT_UUID+" = ?", 
 				new String[] {clientRefIndex+"", clientIndex+"", clientUUID});
@@ -302,17 +326,7 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 		statement.close();
 		return r;
 	}
-	
-	/*
-	public Result insertOrUpdateArrayList(ArrayList<CTGRunChecklist> t) {
-		Result r = new Result();
-		beginTransaction();
-		for (CTGRunChecklist ctgTag : t) {
-			r.add_results_if_error(insertOrUpdate(ctgTag), "Could not add CTGRunChecklist "+t+" to database." );
-		}
-		endTransaction();
-		return r;
-	}*/
+
 	
 	public ArrayList<CTGRunChecklist> getValidItems() {
 		ArrayList<CTGRunChecklist> al = new ArrayList<CTGRunChecklist>();
@@ -357,20 +371,6 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 				CTG_RC_LOCALLY_CHANGED+" > 0",
 				null, null, null, null);
 	}
-	
-	/*
-	public CTGRunChecklist getEntry(int id) {
-		//String where = KEY_NUM+" = "+user_num;
-		CTGRunChecklist c= new CTGRunChecklist();
-		Cursor result= db.query(DATABASE_TABLE, 
-				null, 
-				CTG_RC_ID+" = ? ", new String[] {id+""}, null, null, null);
-		if (result.moveToFirst() ) { //make sure data is in the result.  Read only first entry
-			c = getFromCursor(result);
-		}
-		result.close();
-		return c;
-	}*/
 	
 	/**
 	 * Gets the specific item, whether it was created locally or originated from the server.

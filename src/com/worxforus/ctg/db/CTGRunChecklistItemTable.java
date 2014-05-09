@@ -95,8 +95,7 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 			+ CTG_RCI_CLIENT_INDEX + " INTEGER NOT NULL DEFAULT 0,"
 			+ CTG_RCI_CLIENT_UUID + " TEXT NOT NULL DEFAULT ''," 
 			+ CTG_RCI_LOCALLY_CHANGED + " INTEGER NOT NULL DEFAULT 0," 
-			+ " PRIMARY KEY(" + CTG_RCI_ID + ", "+ CTG_RCI_CLIENT_RC_REF_INDEX + ", " 
-			+ CTG_RCI_CLIENT_CIT_REF_INDEX + ", " + CTG_RCI_CLIENT_INDEX + ", " + CTG_RCI_CLIENT_UUID + " ) " + 
+			+ " PRIMARY KEY(" + CTG_RCI_ID + ", " + CTG_RCI_CLIENT_INDEX + ", " + CTG_RCI_CLIENT_UUID + " ) " + 
 			")";
 
 	// NOTE: When adding to the table items added locally: i.e. no id field, the
@@ -351,6 +350,9 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 		ArrayList<CTGRunChecklistItem> al = new ArrayList<CTGRunChecklistItem>();
 		Cursor list;
 		list = getValidChecklistItemsCursor(runChecklistRef, clientRefIndex, uuid);
+		//these lines below were removed because when the database back-end is updated
+		//the display still holds the reference without the new server id
+		//so look for both items created only locally and those from the server too
 //		if (runChecklistRef > 0)
 //			list = getValidChecklistItemsCursor(runChecklistRef);
 //		else 
@@ -376,26 +378,26 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 				new String[] { runChecklistRef+"", clientRefIndex+"", uuid}, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
 	}
 	
-	/**
-	 * Returns the cursor objects from a server created parent
-	 * @return ArrayList<CTGRunChecklistItem>
-	 */
-	private Cursor getValidChecklistItemsCursor(int runChecklistRef) {
-		return db.query(DATABASE_TABLE, null, 
-				CTG_RCI_RUN_CHECKLIST_REF+" = "+runChecklistRef+" AND "+CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
-				null, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
-	}
-	
-	/**
-	 * Returns the cursor objects from a locally created parent
-	 * @return ArrayList<CTGRunChecklistItem>
-	 */
-	private Cursor getValidChecklistItemsCursor(int clientRefIndex, String uuid) {
-		return db.query(DATABASE_TABLE, null, 
-				CTG_RCI_RUN_CHECKLIST_REF+" = 0 AND "+CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+
-				CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+CTG_RCI_CLIENT_UUID+" = ? ",
-				new String[] { clientRefIndex+"", uuid}, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
-	}
+//	/**
+//	 * Returns the cursor objects from a server created parent
+//	 * @return ArrayList<CTGRunChecklistItem>
+//	 */
+//	private Cursor getValidChecklistItemsCursor(int runChecklistRef) {
+//		return db.query(DATABASE_TABLE, null, 
+//				CTG_RCI_RUN_CHECKLIST_REF+" = "+runChecklistRef+" AND "+CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
+//				null, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
+//	}
+//	
+//	/**
+//	 * Returns the cursor objects from a locally created parent
+//	 * @return ArrayList<CTGRunChecklistItem>
+//	 */
+//	private Cursor getValidChecklistItemsCursor(int clientRefIndex, String uuid) {
+//		return db.query(DATABASE_TABLE, null, 
+//				CTG_RCI_RUN_CHECKLIST_REF+" = 0 AND "+CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+
+//				CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+CTG_RCI_CLIENT_UUID+" = ? ",
+//				new String[] { clientRefIndex+"", uuid}, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
+//	}
 	
 	/**
 	 * This method clears the checklist item if it was set or not and also modified the update date.
@@ -508,6 +510,7 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 		int rc_id=to.getRunChecklistRef();
 		int client_rc_index=to.getClientRunChecklistRefIndex();
 		String uuid=to.getClientUUID();
+		//Restore original settings if the to item did not set it.
 		if (rc_id < 1) rc_id = from.getRunChecklistRef();
 		if (client_rc_index < 1) client_rc_index = from.getClientRunChecklistRefIndex();
 		if (uuid.length() < 1) uuid = from.getClientUUID();

@@ -35,7 +35,7 @@ public class CTGChecklistInterface {
 
 	/**
 	 * Creates a new run_checklist object from a template
-	 * Returns: Result.object - is a reference to the actual created CTGRunChecklist object
+	 * Returns: Result.object - which is a reference to the actual created CTGRunChecklist object
 	 * @param template
 	 * @param uuid
 	 * @param context
@@ -72,6 +72,49 @@ public class CTGChecklistInterface {
 	}
 	
 	/**
+	 * Creates a new template object from a run checklist
+	 * Returns: Result.object - which is a reference to the actual created CTGChecklistTemplate object
+	 * @param fromRC - Original checklist to base template on
+	 * @param uuid
+	 * @param context
+	 * @return result
+	 */
+	public static Result createTemplateFromRunChecklist(CTGRunChecklist fromRC, String uuid, Context context) {
+		Result result;
+		CTGChecklistTemplate ct = new CTGChecklistTemplate();
+		ct.setClient_uuid(uuid);
+		ct.setBy_user(fromRC.getByUser());
+		ct.setTitle(fromRC.getTitle());
+		ct.update(); //mark as locally changed
+		CTGChecklistTemplateTable ctTable = TablePool.getCTTable(context);
+		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, ctTable);
+		//Create the template which creates the new client index
+		result = ctTable.createLocal(ct);
+		if (result.success) {
+			Assert.assertTrue(result.object instanceof CTGChecklistTemplate);
+			ct = (CTGChecklistTemplate)result.object;
+		} else {
+			return result;
+		}
+		TableManager.releaseConnection(ctTable);
+		//Now create the checklist item templates
+		if (result.success) {
+			result.add_results_if_error(CTGChecklistInterface.createTemplateItemsFromRunChecklist(fromRC, ct, context), "Could not create the items for this template.");
+		}
+
+		//now set the RC to be linked to the template we just created
+		fromRC.setTemplateRef(ct.getId());
+		fromRC.setClientRefIndex(ct.getClient_index());
+		fromRC.update();
+		CTGRunChecklistTable rcTable = TablePool.getRCTable(context);
+		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rcTable);
+		rcTable.update(fromRC);
+		TableManager.releaseConnection(rcTable);
+
+		return result;
+	}
+	
+	/**
 	 * Given a run checklist instance , this function takes all the items from the template
 	 * and copies them into the run checklist items for that run checklist
 	 * NOTE: This should only be called on a brand new run checklist instance
@@ -89,7 +132,7 @@ public class CTGChecklistInterface {
 		
 		//create all the CTGRunChecklistItem objects
 		ArrayList<CTGRunChecklistItem> rciItems = new ArrayList<CTGRunChecklistItem>();
-
+		
 		for (CTGChecklistItemTemplate cit : templateItems) {
 			CTGRunChecklistItem rci =  new CTGRunChecklistItem();
 			rci.update(); //mark as locally updated.
@@ -99,7 +142,7 @@ public class CTGChecklistInterface {
 			associateRCIwithRC(rc, rci);
 			rciItems.add(rci);
 		}
-
+		
 		//now create all objects in db
 		CTGRunChecklistItemTable rciTable = TablePool.getRCITable(context);
 		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rciTable);
@@ -108,6 +151,40 @@ public class CTGChecklistInterface {
 		return result;
 	}
 	
+	/**
+	 * Given a run checklist instance , this function takes all the items from the template
+	 * and copies them into the run checklist items for that run checklist
+	 * NOTE: This should only be called on a brand new run checklist instance
+	 * @param fromRC
+	 * @param context
+	 * @return
+	 */
+	public static Result createTemplateItemsFromRunChecklist(CTGRunChecklist fromRC, CTGChecklistTemplate ct, Context context) {
+		Result result = new Result();
+		//The associated template and template items need to exist on this device
+		CTGRunChecklistItemTable rciTable = TablePool.getRCITable(context);
+		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rciTable);
+		ArrayList<CTGRunChecklistItem> rciItems = rciTable.getValidChecklistItems(fromRC.getId(), fromRC.getClientIndex(), fromRC.getClientUUID());
+		TableManager.releaseConnection(rciTable);
+
+		//create all the CTGChecklistItemTemplate objects
+		CTGChecklistItemTemplateTable citTable = TablePool.getCITTable(context);
+		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, citTable);
+		for (CTGRunChecklistItem rci : rciItems) {
+			CTGChecklistItemTemplate cit =  new CTGChecklistItemTemplate();
+			//fill in data from template
+			CTGChecklistInterface.copyRCItoCIT(rci, cit);
+			//associate with template
+			associateCITwithCT(ct, cit);
+			cit.update(); //mark as locally updated.
+			//save the new checklist item templates to the db
+			result.add_results_if_error(citTable.createLocal(cit), "");
+		}
+		TableManager.releaseConnection(citTable);
+		return result;
+	}
+	
+
 	public static void associateRCwithCT(CTGChecklistTemplate linkFrom, CTGRunChecklist linkTo) {
 		linkTo.setTitle(linkFrom.getTitle());
 		linkTo.setTemplateRef(linkFrom.getId());
@@ -130,6 +207,23 @@ public class CTGChecklistInterface {
 		copyTo.setSectionOrder(copyFrom.getSectionOrder());
 		copyTo.setSectionIndex(copyFrom.getSectionIndex());
 		copyTo.setSectionName(copyFrom.getSectionName());
+	}
+	
+	public static void copyRCItoCIT(CTGRunChecklistItem copyFrom, CTGChecklistItemTemplate copyTo) {
+		copyTo.setMeta_status(copyFrom.getMeta_status());
+		copyTo.setType(copyFrom.getType());
+		copyTo.setExtra(copyFrom.getExtra());
+		copyTo.setQuestion(copyFrom.getQuestion());
+		copyTo.setSectionOrder(copyFrom.getSectionOrder());
+		copyTo.setSectionIndex(copyFrom.getSectionIndex());
+		copyTo.setSectionName(copyFrom.getSectionName());
+	}
+	
+	public static void associateCITwithCT(CTGChecklistTemplate linkFrom, CTGChecklistItemTemplate linkTo) {
+		linkTo.setClientRefIndex(linkFrom.getClient_index());
+		linkTo.setTemplateRef(linkFrom.getId());
+		linkTo.setByUser(linkFrom.getBy_user());
+		linkTo.setClientUUID(linkFrom.getClient_uuid());
 	}
 	
 	public static Result handleReorderRCIs(CTGRunChecklistItem from, CTGRunChecklistItem to, Context c) {
@@ -158,6 +252,35 @@ public class CTGChecklistInterface {
 		list.add(from);
 		r = rciTable.insertOrUpdateArrayList(list);
 		TableManager.releaseConnection(rciTable);
+		return r;
+	}
+	
+	public static Result handleReorderCITs(CTGChecklistItemTemplate from, CTGChecklistItemTemplate to, Context c) {
+		//reorder, touch then save everything at and above the section order for the given 'to' item
+		//set the 'from' item location to the new 'to' item location, touch then save it.
+		Result r = new Result();
+		CTGChecklistItemTemplateTable table = TablePool.getCITTable(c);
+		TableManager.acquireConnection(c, CTGConstants.DATABASE_NAME, table);
+		//if moving down the list, get the items after the current 'to' item
+		ArrayList<CTGChecklistItemTemplate> list; 
+		if (from.getSectionOrder() < to.getSectionOrder()) {
+			//moving down the list - so we are inserting after the selected item.
+			to.setSectionOrder(to.getSectionOrder()+1);
+		} //else - for moving up, we just use the section order of the item we are moving to
+		list = table.getOtherItemsToReorder(from, to);
+		//Just add one to each item in the list
+		for (CTGChecklistItemTemplate item : list) {
+			item.setSectionOrder(item.getSectionOrder()+1);
+			item.update();
+		}
+		//now update the target item
+		from.setSectionIndex(to.getSectionIndex());
+		from.setSectionName(to.getSectionName());
+		from.setSectionOrder(to.getSectionOrder());
+		from.update();
+		list.add(from);
+		r = table.insertOrUpdateArrayList(list);
+		TableManager.releaseConnection(table);
 		return r;
 	}
 		

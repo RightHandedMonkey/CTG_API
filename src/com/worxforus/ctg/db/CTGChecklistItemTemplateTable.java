@@ -14,6 +14,7 @@ import android.database.sqlite.SQLiteStatement;
 import android.util.Log;
 
 import com.worxforus.Result;
+import com.worxforus.Utils;
 import com.worxforus.ctg.CTGChecklistItemTemplate;
 import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
@@ -80,8 +81,7 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 			+ CTG_CIT_CLIENT_INDEX + "    	INTEGER NOT NULL DEFAULT 0," 
 			+ CTG_CIT_CLIENT_UUID + "    	TEXT NOT NULL DEFAULT ''," 
 			+ CTG_CIT_LOCALLY_CHANGED + "   INTEGER NOT NULL DEFAULT 0," 
-			+ " PRIMARY KEY(" + CTG_CIT_ID + ", "+ CTG_CIT_CLIENT_REF_INDEX + ", " 
-			+ CTG_CIT_CLIENT_INDEX + ", " + CTG_CIT_CLIENT_UUID + " ) " + 
+			+ " PRIMARY KEY(" + CTG_CIT_ID + ", " + CTG_CIT_CLIENT_INDEX + ", " + CTG_CIT_CLIENT_UUID + " ) " + 
 			")";
 
 	// NOTE: When adding to the table items added locally: i.e. no id field, the
@@ -373,11 +373,16 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 	
 	public ArrayList<CTGChecklistItemTemplate> getValidTemplateItems(int templateRef, int clientRefIndex, String uuid) {
 		ArrayList<CTGChecklistItemTemplate> al = new ArrayList<CTGChecklistItemTemplate>();
-		Cursor list;
-		if (templateRef > 0) //get template that was downloaded from the server
-			list = getValidTemplateItemsCursor(templateRef);
-		else //get locally created template
-			list = getValidTemplateItemsCursor(clientRefIndex, uuid);
+		Cursor list = getValidTemplateItemsCursor(templateRef, clientRefIndex, uuid);
+		
+		//these lines below were removed because when the database back-end is updated
+		//the display still holds the reference without the new server id
+		//so look for both items created only locally and those from the server too
+
+//		if (templateRef > 0) //get template that was downloaded from the server
+//			list = getValidTemplateItemsCursor(templateRef);
+//		else //get locally created template
+//			list = getValidTemplateItemsCursor(clientRefIndex, uuid);
 		if (list.moveToFirst()){
 			do {
 				al.add(getFromCursor(list));
@@ -387,25 +392,79 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 		return al;
 	}
 	
-	/**
-	 * Returns the cursor objects.
-	 * @return ArrayList<CTGChecklistItemTemplate>
-	 */
-	public Cursor getValidTemplateItemsCursor(int templateRef) {
-		return db.query(DATABASE_TABLE, null, 
-				CTG_CIT_TEMPLATE_REF+" = "+templateRef+" AND "+CTG_CIT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
-				null, null, null, CTG_CIT_SECTION_INDEX+", "+CTG_CIT_SECTION_ORDER);
-	}
+//	/**
+//	 * Returns the cursor objects.
+//	 * @return ArrayList<CTGChecklistItemTemplate>
+//	 */
+//	public Cursor getValidTemplateItemsCursor(int templateRef) {
+//		return db.query(DATABASE_TABLE, null, 
+//				CTG_CIT_TEMPLATE_REF+" = "+templateRef+" AND "+CTG_CIT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
+//				null, null, null, CTG_CIT_SECTION_INDEX+", "+CTG_CIT_SECTION_ORDER);
+//	}
 	
 	/**
 	 * Returns the cursor objects.
 	 * @return ArrayList<CTGChecklistItemTemplate>
 	 */
-	public Cursor getValidTemplateItemsCursor(int clientRefIndex, String uuid) {
+	public Cursor getValidTemplateItemsCursor(int templateRef, int clientRefIndex, String uuid) {
 		return db.query(DATABASE_TABLE, null, 
-				CTG_CIT_TEMPLATE_REF+" = 0 AND "+CTG_CIT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+
-				CTG_CIT_CLIENT_REF_INDEX+" = "+clientRefIndex+" AND "+CTG_CIT_CLIENT_UUID+" = ? ",
-				new String[] {uuid}, null, null, CTG_CIT_SECTION_INDEX+", "+CTG_CIT_SECTION_ORDER);
+				"("+CTG_CIT_TEMPLATE_REF+" = ? AND "+CTG_CIT_TEMPLATE_REF+" > 0 OR ( "+
+						CTG_CIT_CLIENT_REF_INDEX+" = ? AND "+CTG_CIT_CLIENT_UUID+" = ? AND "+CTG_CIT_CLIENT_REF_INDEX+" > 0) ) AND "+
+				CTG_CIT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
+				new String[] { templateRef+"", clientRefIndex+"", uuid}, null, null, CTG_CIT_SECTION_INDEX+", "+CTG_CIT_SECTION_ORDER);
+	}
+	
+	/**
+	 * This function will return a cursor for the items that will need to be updated when moving the position of a CIT object.
+	 * NOTE: This will include the item being moved along with the other items to be reordered.
+	 * 
+	 * Worst case is when one item was created locally and hasn't been given a server id yet, and the other one has a server id
+	 * @param from
+	 * @param to
+	 * @return
+	 */
+	public Cursor getItemsToReorderCursor(CTGChecklistItemTemplate from, CTGChecklistItemTemplate to) {
+		//get best matching RC id information
+		int ct_id=to.getTemplateRef();
+		int client_ct_index=to.getClientRefIndex();
+		String uuid=to.getClientUUID();
+		//Restore original settings if the to item did not set it.
+		if (ct_id < 1) ct_id = from.getTemplateRef();
+		if (client_ct_index < 1) client_ct_index = from.getClientRefIndex();
+		if (uuid.length() < 1) uuid = from.getClientUUID();
+		
+		String where = CTG_CIT_SECTION_ORDER+" >= ? AND ( ("+CTG_CIT_TEMPLATE_REF+" = ? AND "+CTG_CIT_TEMPLATE_REF+" > 0) OR "+
+				"("+CTG_CIT_CLIENT_REF_INDEX+" = ? AND "+CTG_CIT_CLIENT_UUID+" = ? AND "+CTG_CIT_CLIENT_REF_INDEX+" > 0) )";
+		Utils.LogD(this.getClass().getName(), "getItemsToReorderCursor(..) called - to_section_order:"+to.getSectionOrder()+", rc ref:"+ct_id+", client rc ref index:"+client_ct_index+", where sql: "+where);
+		//for server created linked run checklists
+		//or items belonging to a locally created group
+		return db.query(DATABASE_TABLE, null, where,
+				new String[] {to.getSectionOrder()+"", ct_id+"", 
+				client_ct_index+"", uuid}, null, null, CTG_CIT_SECTION_ORDER);
+	}
+	
+	/**
+	 * 	
+	 * This function will gather the items that will need to be updated when moving the position of an CIT object.
+	 * NOTE: This will NOT include the item being moved, only the other items to be reordered.
+	 * @param from
+	 * @param to
+	 * @return
+	 */
+	public ArrayList<CTGChecklistItemTemplate> getOtherItemsToReorder(CTGChecklistItemTemplate from, CTGChecklistItemTemplate to) {
+		ArrayList<CTGChecklistItemTemplate> al = new ArrayList<CTGChecklistItemTemplate>();
+		Cursor list = getItemsToReorderCursor(from, to);
+		if (list.moveToFirst()){
+			do {
+				CTGChecklistItemTemplate item = getFromCursor(list);
+				if (item.hasMatchingId(from)) //ignore it, this is the one being moved and will be handled after the items are reordered
+					continue;
+				al.add(item);
+			} while(list.moveToNext());
+		}
+		list.close();
+		Utils.LogD(this.getClass().getName(), "Items to be reordered: "+al.size());
+		return al;
 	}
 	
 	public ArrayList<CTGChecklistItemTemplate> getUploadItems() {

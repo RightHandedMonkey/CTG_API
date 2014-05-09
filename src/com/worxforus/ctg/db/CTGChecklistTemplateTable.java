@@ -17,6 +17,7 @@ import com.worxforus.Result;
 import com.worxforus.ctg.CTGChecklistItemTemplate;
 import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
+import com.worxforus.ctg.CTGRunChecklist;
 import com.worxforus.ctg.CTGRunChecklistItem;
 import com.worxforus.ctg.CTGTag;
 import com.worxforus.db.TableInterface;
@@ -78,8 +79,7 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 			+ CTG_CT_CLIENT_INDEX + "    	INTEGER NOT NULL DEFAULT 0," 
 			+ CTG_CT_CLIENT_UUID + "    	TEXT NOT NULL DEFAULT ''," 
 			+ CTG_CT_LOCALLY_CHANGED + "    INTEGER NOT NULL DEFAULT 0," 
-			+ " PRIMARY KEY(" + CTG_CT_ID + ", "
-			+ CTG_CT_CLIENT_INDEX + ", " + CTG_CT_CLIENT_UUID + " ) " + 
+			+ " PRIMARY KEY(" + CTG_CT_ID + ", " + CTG_CT_CLIENT_INDEX + ", " + CTG_CT_CLIENT_UUID + " ) " + 
 			")";
 
 	// NOTE: When adding to the table items added locally: i.e. no id field, the
@@ -257,17 +257,11 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 		return r;
 	}
 	
-	/*
-	public Result insertOrUpdateArrayList(ArrayList<CTGChecklistTemplate> t) {
-		Result r = new Result();
-		beginTransaction();
-		for (CTGChecklistTemplate ctgTag : t) {
-			r.add_results_if_error(insertOrUpdate(ctgTag), "Could not add CTGChecklistTemplate "+t+" to database." );
-		}
-		endTransaction();
-		return r;
-	}
-*/
+	/**
+	 * Creates a local template that can later be uploaded to the server
+	 * @param ct
+	 * @return result object - where result.object is the newly created template if successful
+	 */
 	public Result createLocal(CTGChecklistTemplate ct) {
 		synchronized (DATABASE_TABLE) {
 			int rowId = -1;
@@ -285,8 +279,12 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 				r.error = e.getMessage();
 				r.success = false;
 			}
-			if (rowId < 1) {
-				r.technical_error = "Could not add ChecklistTemplate in db. Data: "+ct.toString();
+			if (rowId > 0) {
+					//get the newly created database item using the hidden rowid field
+					ct = getByRowid(rowId);
+					r.object = ct;
+			} else {
+				r.technical_error = "Could not add CTGChecklistTemplate to db. Data: "+ct.toString();
 				r.success = false;
 			}
 			return r;
@@ -305,12 +303,21 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 			return i;
 		}
 	}
-	public CTGChecklistTemplate getEntry(int id) {
-		//String where = KEY_NUM+" = "+user_num;
+
+	/**
+	 * Gets the specific item, whether it was created locally or originated from the server.
+	 * @param id - greater than zero from server orginated objects
+	 * @param localIndex - used for locally created objects
+	 * @param uuid - used for locally created objects
+	 * @return The object requested from the database or a new one if not found
+	 */
+	public CTGChecklistTemplate getEntry(int id, int localIndex, String uuid) {
 		CTGChecklistTemplate c= new CTGChecklistTemplate();
-		Cursor result= db.query(DATABASE_TABLE, 
-				null, 
-				CTG_CT_ID+" = ? ", new String[] {id+""}, null, null, null);
+		Cursor result;
+		if (id > 0)
+			result = getEntryCursor(id);
+		else
+			result = getEntryCursor(localIndex, uuid);
 		if (result.moveToFirst() ) { //make sure data is in the result.  Read only first entry
 			c = getFromCursor(result);
 		}
@@ -318,6 +325,22 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 		return c;
 	}
 	
+	/**
+	 * Get the cursor that finds a specific server created item
+	 * @return
+	 */
+	protected Cursor getEntryCursor(int id) {
+		return db.query(DATABASE_TABLE, null, CTG_CT_ID+" = ? ", new String[] {id+""}, null, null, null);
+	}
+	
+	/**
+	 * Get the cursor that finds a specific locally created item
+	 * @return
+	 */
+	protected Cursor getEntryCursor(int index, String uuid) {
+		return db.query(DATABASE_TABLE, null, CTG_CT_CLIENT_INDEX+" = ? AND "+CTG_CT_CLIENT_UUID+" = ? ",
+				new String[] {index+"", uuid}, null, null, null);
+	}
 	
 	public ArrayList<CTGChecklistTemplate> getTemplatesByCat1(int cat1Id) {
 		ArrayList<CTGChecklistTemplate> al = new ArrayList<CTGChecklistTemplate>();
@@ -504,6 +527,17 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 				null, null, null, null);
 	}
 	 
+	protected CTGChecklistTemplate getByRowid(int rowid) {
+		CTGChecklistTemplate c= new CTGChecklistTemplate();
+		Cursor result= db.query(DATABASE_TABLE, 
+				null, 
+				"ROWID = ? ", new String[] {rowid+""}, null, null, null);
+		if (result.moveToFirst() ) { //make sure data is in the result.  Read only first entry
+			c = getFromCursor(result);
+		}
+		result.close();
+		return c;
+	}
 	
     // ================------------> helper class <-----------==============\\
 	private static class CTGTagTableDbHelper extends SQLiteOpenHelper {

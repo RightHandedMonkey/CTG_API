@@ -74,31 +74,24 @@ public class SyncNetworkUploadCommand implements Command {
 		//Don't attempt to load pages that require login if we can't login
 		if(NetAuthentication.isReadyForLogin()) {
 			r =  sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, ctgTable, new CTGTag(), itemsPerPage);
-			//Display data isn't changing here on upload - so don't update list
-//			TagListNotifier.getNotifier().updateList();
 			if (checkAbort(r)) {
 				return r;
 			}
 			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, ctTable, new CTGChecklistTemplate(), itemsPerPage),"");
-			//Display data isn't changing here on upload - so don't update list
-//			CTListNotifier.getNotifier().updateList();
 			if (checkAbort(r)) {
 				return r;
 			}
 			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, citTable, new CTGChecklistItemTemplate(), itemsPerPage), "");
-			//Display data isn't changing here on upload - so don't update list
-//			CITListNotifier.getNotifier().updateList();
+			if (checkAbort(r)) {
+				return r;
+			}
 		
 			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, rcTable, new CTGRunChecklist(), itemsPerPage), "");
-			//Display data isn't changing here on upload - so don't update list
-//			RCListNotifier.getNotifier().updateList();
 			if (checkAbort(r)) {
 				return r;
 			}
 
 			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, rciTable, new CTGRunChecklistItem(), itemsPerPage), "");
-			//Display data isn't changing here on upload - so don't update list
-//			RCIListNotifier.getNotifier().updateList();
 		}
 		long finishTime = System.nanoTime()/1000000;
 		Utils.LogD(this.getClass().getName(), "Finish CTG Upload sync - took "+(finishTime-startTime)+" ms");
