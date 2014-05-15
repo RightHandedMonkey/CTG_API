@@ -50,7 +50,7 @@ public class CTGChecklistInterface {
 		CTGRunChecklistTable rcTable = TablePool.getRCTable(context);
 		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rcTable);
 		//check how many times the user has used this template to attempt to set title to a unique name
-		int count = rcTable.getNumTimesTemplateUsed(template.getId());
+		int count = rcTable.getNumTimesTemplateUsed(template.getId(), template.getClient_index(), template.getClient_uuid());
 		if(count > 0) {
 			rc.setTitle(rc.getTitle()+" #"+count);
 		}

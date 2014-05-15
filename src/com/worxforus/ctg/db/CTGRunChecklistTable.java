@@ -236,8 +236,8 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 	}
 	
 
-	public int getNumTimesTemplateUsed(int templateId) {
-		Cursor list = getNumTimesTemplateUsedCursor(templateId);
+	public int getNumTimesTemplateUsed(int templateId, int templateRefId, String templateUUID) {
+		Cursor list = getNumTimesTemplateUsedCursor(templateId, templateRefId, templateUUID);
 		int size = list.getCount();
 		list.close();
 		return size;
@@ -374,7 +374,7 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 	
 	/**
 	 * Gets the specific item, whether it was created locally or originated from the server.
-	 * @param id - greater than zero from server orginated objects
+	 * @param id - greater than zero from server originated objects
 	 * @param localIndex - used for locally created objects
 	 * @param uuid - used for locally created objects
 	 * @return The object requested from the database or a new one if not found
@@ -433,8 +433,13 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 		return db.query(DATABASE_TABLE, null, null, null, null, null, CTG_RC_ID);
 	}
 
-	protected Cursor getNumTimesTemplateUsedCursor(int templateId) {
-		return db.query(DATABASE_TABLE, null, CTG_RC_TEMPLATE_REF+" = ? AND "+CTG_RC_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL, new String[] {templateId+""}, null, null, CTG_RC_ID);
+	protected Cursor getNumTimesTemplateUsedCursor(int templateId, int templateRefId, String templateUUID) {
+		String where = " ( ("+CTG_RC_TEMPLATE_REF+" = ? AND "+CTG_RC_TEMPLATE_REF+" > 0) OR "+
+				"("+CTG_RC_CLIENT_REF_INDEX+" = ? AND "+CTG_RC_CLIENT_UUID+" = ? AND "+CTG_RC_CLIENT_REF_INDEX+" > 0) )"+
+				" AND "+CTG_RC_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL;
+		//String where = CTG_RC_TEMPLATE_REF+" = ? AND "+CTG_RC_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL;
+
+		return db.query(DATABASE_TABLE, null, where, new String[] {templateId+"", templateRefId+"", templateUUID}, null, null, CTG_RC_ID);
 	}
 	
 	/**

@@ -71,8 +71,6 @@ public class SyncNetworkDownloadCommand implements Command {
 		if (checkAbort(r)) {
 			return r;
 		}
-		
-		
 		r =  sm.handleSyncTableDownload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, ctgTable, new CTGTag(), itemsPerPage, ctagInfo.getDownloadDate());
 		TagListNotifier.getNotifier().updateList();
 		if (checkAbort(r)) {
