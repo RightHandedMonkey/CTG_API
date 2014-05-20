@@ -47,8 +47,10 @@ public class CTGChecklistInterface {
 		rc.update(); //mark as locally changed
 		associateRCwithCT(template, rc);
 		rc.setClientUUID(uuid);
-		CTGRunChecklistTable rcTable = TablePool.getRCTable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rcTable);
+		
+//		CTGRunChecklistTable rcTable = CTGTablePool.getTable(CTGRunChecklistTable.class, context, CTGConstants.getDatabaseName());
+		CTGRunChecklistTable rcTable = CTGTablePool.getTable(CTGRunChecklistTable.class, context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), rcTable);
 		//check how many times the user has used this template to attempt to set title to a unique name
 		int count = rcTable.getNumTimesTemplateUsed(template.getId(), template.getClient_index(), template.getClient_uuid());
 		if(count > 0) {
@@ -86,8 +88,8 @@ public class CTGChecklistInterface {
 		ct.setBy_user(fromRC.getByUser());
 		ct.setTitle(fromRC.getTitle());
 		ct.update(); //mark as locally changed
-		CTGChecklistTemplateTable ctTable = TablePool.getCTTable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, ctTable);
+		CTGChecklistTemplateTable ctTable = CTGTablePool.getTable(CTGChecklistTemplateTable.class, context); //TablePool.getCTTable(context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), ctTable);
 		//Create the template which creates the new client index
 		result = ctTable.createLocal(ct);
 		if (result.success) {
@@ -106,8 +108,8 @@ public class CTGChecklistInterface {
 		fromRC.setTemplateRef(ct.getId());
 		fromRC.setClientRefIndex(ct.getClient_index());
 		fromRC.update();
-		CTGRunChecklistTable rcTable = TablePool.getRCTable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rcTable);
+		CTGRunChecklistTable rcTable = CTGTablePool.getTable(CTGRunChecklistTable.class, context); //CTGTablePool.getTable(CTGRunChecklistTable.class, context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), rcTable);
 		rcTable.update(fromRC);
 		TableManager.releaseConnection(rcTable);
 
@@ -125,8 +127,8 @@ public class CTGChecklistInterface {
 	public static Result createRunItemsForChecklist(CTGRunChecklist rc, Context context) {
 		Result result; // = new Result();
 		//The associated template and template items need to exist on this device
-		CTGChecklistItemTemplateTable citTable = TablePool.getCITTable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, citTable);
+		CTGChecklistItemTemplateTable citTable = CTGTablePool.getTable(CTGChecklistItemTemplateTable.class, context);  //TablePool.getCITTable(context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), citTable);
 		ArrayList<CTGChecklistItemTemplate> templateItems = citTable.getValidTemplateItems(rc.getTemplateRef(), rc.getClientRefIndex(), rc.getClientUUID());
 		TableManager.releaseConnection(citTable);
 		
@@ -144,8 +146,8 @@ public class CTGChecklistInterface {
 		}
 		
 		//now create all objects in db
-		CTGRunChecklistItemTable rciTable = TablePool.getRCITable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rciTable);
+		CTGRunChecklistItemTable rciTable = CTGTablePool.getTable(CTGRunChecklistItemTable.class, context); //TablePool.getRCITable(context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), rciTable);
 		result = rciTable.createLocalRunChecklistItems(rciItems);
 		TableManager.releaseConnection(rciTable);
 		return result;
@@ -162,14 +164,14 @@ public class CTGChecklistInterface {
 	public static Result createTemplateItemsFromRunChecklist(CTGRunChecklist fromRC, CTGChecklistTemplate ct, Context context) {
 		Result result = new Result();
 		//The associated template and template items need to exist on this device
-		CTGRunChecklistItemTable rciTable = TablePool.getRCITable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rciTable);
+		CTGRunChecklistItemTable rciTable = CTGTablePool.getTable(CTGRunChecklistItemTable.class, context);// TablePool.getRCITable(context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), rciTable);
 		ArrayList<CTGRunChecklistItem> rciItems = rciTable.getValidChecklistItems(fromRC.getId(), fromRC.getClientIndex(), fromRC.getClientUUID());
 		TableManager.releaseConnection(rciTable);
 
 		//create all the CTGChecklistItemTemplate objects
-		CTGChecklistItemTemplateTable citTable = TablePool.getCITTable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, citTable);
+		CTGChecklistItemTemplateTable citTable = CTGTablePool.getTable(CTGChecklistItemTemplateTable.class, context); //TablePool.getCITTable(context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), citTable);
 		for (CTGRunChecklistItem rci : rciItems) {
 			CTGChecklistItemTemplate cit =  new CTGChecklistItemTemplate();
 			//fill in data from template
@@ -230,8 +232,8 @@ public class CTGChecklistInterface {
 		//reorder, touch then save everything at and above the section order for the given 'to' item
 		//set the 'from' item location to the new 'to' item location, touch then save it.
 		Result r = new Result();
-		CTGRunChecklistItemTable rciTable = TablePool.getRCITable(c);
-		TableManager.acquireConnection(c, CTGConstants.DATABASE_NAME, rciTable);
+		CTGRunChecklistItemTable rciTable = CTGTablePool.getTable(CTGRunChecklistItemTable.class, c);//TablePool.getRCITable(c);
+		TableManager.acquireConnection(c, CTGTablePool.getDbName(), rciTable);
 		//if moving down the list, get the items after the current 'to' item
 		ArrayList<CTGRunChecklistItem> list; 
 		if (from.getSectionOrder() < to.getSectionOrder()) {
@@ -259,8 +261,8 @@ public class CTGChecklistInterface {
 		//reorder, touch then save everything at and above the section order for the given 'to' item
 		//set the 'from' item location to the new 'to' item location, touch then save it.
 		Result r = new Result();
-		CTGChecklistItemTemplateTable table = TablePool.getCITTable(c);
-		TableManager.acquireConnection(c, CTGConstants.DATABASE_NAME, table);
+		CTGChecklistItemTemplateTable table = CTGTablePool.getTable(CTGChecklistItemTemplateTable.class, c);//TablePool.getCITTable(c);
+		TableManager.acquireConnection(c, CTGTablePool.getDbName(), table);
 		//if moving down the list, get the items after the current 'to' item
 		ArrayList<CTGChecklistItemTemplate> list; 
 		if (from.getSectionOrder() < to.getSectionOrder()) {
@@ -285,34 +287,34 @@ public class CTGChecklistInterface {
 	}
 		
 	public static void wipeDatabase(Context context) {
-		CTGRunChecklistTable rcTable = TablePool.getRCTable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rcTable);
+		CTGRunChecklistTable rcTable = CTGTablePool.getTable(CTGRunChecklistTable.class, context);//CTGTablePool.getTable(CTGRunChecklistTable.class, context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), rcTable);
 		rcTable.wipeTable();
 		TableManager.releaseConnection(rcTable);
 
-		CTGTagTable ctgTable = TablePool.getTagTable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, ctgTable);
+		CTGTagTable ctgTable = CTGTablePool.getTable(CTGTagTable.class, context);//TablePool.getTagTable(context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), ctgTable);
 		ctgTable.wipeTable();
 		TableManager.releaseConnection(ctgTable);
 
-		CTGChecklistTemplateTable ctTable = TablePool.getCTTable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, ctTable);
+		CTGChecklistTemplateTable ctTable = CTGTablePool.getTable(CTGChecklistTemplateTable.class, context);//TablePool.getCTTable(context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), ctTable);
 		ctTable.wipeTable();
 		TableManager.releaseConnection(ctTable);
 
-		CTGChecklistItemTemplateTable citTable = TablePool.getCITTable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, citTable);
+		CTGChecklistItemTemplateTable citTable = CTGTablePool.getTable(CTGChecklistItemTemplateTable.class, context);//TablePool.getCITTable(context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), citTable);
 		citTable.wipeTable();
 		TableManager.releaseConnection(citTable);
 
-		CTGRunChecklistItemTable rciTable = TablePool.getRCITable(context);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, rciTable);
+		CTGRunChecklistItemTable rciTable = CTGTablePool.getTable(CTGRunChecklistItemTable.class, context);//TablePool.getRCITable(context);
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), rciTable);
 		rciTable.wipeTable();
 		TableManager.releaseConnection(rciTable);
 		
 		//clear sync notifications so data can be redownloaded.
-		TableSyncDb syncDb = new TableSyncDb(context, CTGConstants.DATABASE_NAME);
-		TableManager.acquireConnection(context, CTGConstants.DATABASE_NAME, syncDb);
+		TableSyncDb syncDb = CTGTablePool.getTable(TableSyncDb.class, context);//new TableSyncDb(context, CTGTablePool.getDbName());
+		TableManager.acquireConnection(context, CTGTablePool.getDbName(), syncDb);
 		syncDb.wipeTable();
 		TableManager.releaseConnection(syncDb);
 

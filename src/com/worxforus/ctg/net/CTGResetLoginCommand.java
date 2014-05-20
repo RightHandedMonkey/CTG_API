@@ -6,6 +6,7 @@ import android.content.Context;
 import com.worxforus.Command;
 import com.worxforus.Result;
 import com.worxforus.ctg.CTGConstants;
+import com.worxforus.ctg.CTGTablePool;
 import com.worxforus.db.TableManager;
 
 public class CTGResetLoginCommand implements Command {
@@ -25,7 +26,7 @@ public class CTGResetLoginCommand implements Command {
 		Assert.assertNotNull(c);
 			
 		Result r = new Result();
-		r = TableManager.resetSyncData(c, CTGConstants.DATABASE_NAME);
+		r = TableManager.resetSyncData(c, CTGTablePool.getDbName());
 		state = Command.STATE_FINISHED;
 		return r;
 	}

@@ -3,8 +3,10 @@ package com.worxforus.ctg;
 
 public class CTGConstants {
 	
-	public static final String APK_CODE = "1"; 
-	public static final String DATABASE_NAME ="CTG";
+	public static final String APK_CODE = "3"; 
+	//changed this to private so that getDatabaseName(...) must be called
+	//this way each user can have their own database.
+	private static final String DATABASE_NAME ="CTG";
 		
 	//User Messages
 	public static final String LOGIN_ERROR= "Could not login to server.";
@@ -23,6 +25,11 @@ public class CTGConstants {
 	public static final int META_STATUS_DELETED = 1;
 	public static final int META_STATUS_TEMPORARY = 2;
 
+	public static String getDatabaseName(int userNum) {
+		return DATABASE_NAME+"_"+userNum;
+	}
+	
+	public static String getOldDatabaseName() { return DATABASE_NAME; }
 
 	
 }

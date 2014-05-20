@@ -15,7 +15,7 @@ import com.worxforus.db.TableVersionDb;
  * Usage:
  * TagTable tagTable = TablePool.getTagTable(getActivity());
  */
-
+@Deprecated
 public class TablePool {
 	//private Application application;
 	private static TablePool instance = new TablePool();
@@ -36,49 +36,49 @@ public class TablePool {
 		return instance;
 	}
 
-	public static CTGTagTable getTagTable(Context appContext) {
+	public static CTGTagTable getTagTable(Context appContext, String dbName) {
 		Assert.assertNotNull(appContext);
 		if (self().tagTable == null) {
-			self().tagTable = new CTGTagTable(appContext);
+			self().tagTable = new CTGTagTable(appContext, dbName);
 		}
 		return self().tagTable;
 	}
 
-	public static TableVersionDb getTableVersions(Context appContext) {
+	public static TableVersionDb getTableVersions(Context appContext, String dbName) {
 		if (self().tableVersionTable == null) {
-			self().tableVersionTable = new TableVersionDb(appContext, CTGConstants.DATABASE_NAME);
+			self().tableVersionTable = new TableVersionDb(appContext, dbName);
 		}
 		return self().tableVersionTable;
 	}
 
-	public static CTGChecklistTemplateTable getCTTable(Context appContext) {
+	public static CTGChecklistTemplateTable getCTTable(Context appContext, String dbName) {
 		Assert.assertNotNull(appContext);
 		if (self().ctTable == null) {
-			self().ctTable = new CTGChecklistTemplateTable(appContext);
+			self().ctTable = new CTGChecklistTemplateTable(appContext, dbName);
 		}
 		return self().ctTable;	
 	}
 
-	public static CTGChecklistItemTemplateTable getCITTable(Context appContext) {
+	public static CTGChecklistItemTemplateTable getCITTable(Context appContext, String dbName) {
 		Assert.assertNotNull(appContext);
 		if (self().citTable == null) {
-			self().citTable = new CTGChecklistItemTemplateTable(appContext);
+			self().citTable = new CTGChecklistItemTemplateTable(appContext, dbName);
 		}
 		return self().citTable;	
 	}
 	
-	public static CTGRunChecklistTable getRCTable(Context appContext) {
+	public static CTGRunChecklistTable getRCTable(Context appContext, String dbName) {
 		Assert.assertNotNull(appContext);
 		if (self().rcTable == null) {
-			self().rcTable = new CTGRunChecklistTable(appContext);
+			self().rcTable = new CTGRunChecklistTable(appContext, dbName);
 		}
 		return self().rcTable;	
 	}
 
-	public static CTGRunChecklistItemTable getRCITable(Context appContext) {
+	public static CTGRunChecklistItemTable getRCITable(Context appContext, String dbName) {
 		Assert.assertNotNull(appContext);
 		if (self().rciTable == null) {
-			self().rciTable = new CTGRunChecklistItemTable(appContext);
+			self().rciTable = new CTGRunChecklistItemTable(appContext, dbName);
 		}
 		return self().rciTable;	
 	}

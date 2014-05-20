@@ -8,21 +8,20 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteStatement;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteStatement;
 import android.util.Log;
 
 import com.worxforus.Result;
 import com.worxforus.Utils;
-import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
 import com.worxforus.ctg.CTGRunChecklistItem;
 import com.worxforus.db.TableInterface;
 
-public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem> {
+public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem> implements CTGLocalItemsInterface<CTGRunChecklistItem> {
 
-	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
+//	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
 	public static final String DATABASE_TABLE = "ctg_run_checklist_item_table";
 	public static final int TABLE_VERSION = 2;
 	// 1 - Initial version
@@ -119,8 +118,8 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 
 //	protected int last_version = 0;
 
-	public CTGRunChecklistItemTable(Context _context) {
-		dbHelper = new TableDbHelper(_context, DATABASE_NAME, null,
+	public CTGRunChecklistItemTable(Context _context, String dbName) {
+		dbHelper = new TableDbHelper(_context, dbName, null,
 				DATABASE_VERSION); // DATABASE_VERSION);
 	}
 
@@ -378,26 +377,29 @@ public class CTGRunChecklistItemTable extends TableInterface<CTGRunChecklistItem
 				new String[] { runChecklistRef+"", clientRefIndex+"", uuid}, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
 	}
 	
-//	/**
-//	 * Returns the cursor objects from a server created parent
-//	 * @return ArrayList<CTGRunChecklistItem>
-//	 */
-//	private Cursor getValidChecklistItemsCursor(int runChecklistRef) {
-//		return db.query(DATABASE_TABLE, null, 
-//				CTG_RCI_RUN_CHECKLIST_REF+" = "+runChecklistRef+" AND "+CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
-//				null, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
-//	}
-//	
-//	/**
-//	 * Returns the cursor objects from a locally created parent
-//	 * @return ArrayList<CTGRunChecklistItem>
-//	 */
-//	private Cursor getValidChecklistItemsCursor(int clientRefIndex, String uuid) {
-//		return db.query(DATABASE_TABLE, null, 
-//				CTG_RCI_RUN_CHECKLIST_REF+" = 0 AND "+CTG_RCI_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL+" AND "+
-//				CTG_RCI_CLIENT_RC_REF_INDEX+" = ? AND "+CTG_RCI_CLIENT_UUID+" = ? ",
-//				new String[] { clientRefIndex+"", uuid}, null, null, CTG_RCI_SECTION_INDEX+", "+CTG_RCI_SECTION_ORDER);
-//	}
+
+	@Override
+	public ArrayList<CTGRunChecklistItem> getLocalCreatedItems() {
+		ArrayList<CTGRunChecklistItem> al = new ArrayList<CTGRunChecklistItem>();
+		Cursor list = getLocalCreatedItemsCursor();
+		if (list.moveToFirst()){
+			do {
+				al.add(getFromCursor(list));
+			} while(list.moveToNext());
+		}
+		list.close();
+		return al;
+	}
+	
+	/**
+	 * Returns the cursor objects.
+	 * @return ArrayList<CTGRunChecklist>
+	 */
+	public Cursor getLocalCreatedItemsCursor() {
+		return db.query(DATABASE_TABLE, null, 
+				CTG_RCI_ID+" = 0 ",
+				null, null, null, null);
+	}
 	
 	/**
 	 * This method clears the checklist item if it was set or not and also modified the update date.

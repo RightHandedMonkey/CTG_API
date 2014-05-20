@@ -8,22 +8,21 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
 import android.util.Log;
 
 import com.worxforus.Result;
 import com.worxforus.Utils;
 import com.worxforus.ctg.CTGChecklistItemTemplate;
-import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
-import com.worxforus.ctg.CTGRunChecklistItem;
 import com.worxforus.db.TableInterface;
 
-public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistItemTemplate> {
+public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistItemTemplate>
+	implements CTGLocalItemsInterface<CTGChecklistItemTemplate> {
 
-	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
+	//public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
 	public static final String DATABASE_TABLE = "ctg_checklist_item_template_table";
 	public static final int TABLE_VERSION = 1;
 	// 1 - Initial version
@@ -104,8 +103,8 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 
 //	protected int last_version = 0;
 
-	public CTGChecklistItemTemplateTable(Context _context) {
-		dbHelper = new CTGTagTableDbHelper(_context, DATABASE_NAME, null,
+	public CTGChecklistItemTemplateTable(Context _context, String dbName) {
+		dbHelper = new CTGTagTableDbHelper(_context, dbName, null,
 				DATABASE_VERSION); // DATABASE_VERSION);
 	}
 
@@ -375,14 +374,6 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 		ArrayList<CTGChecklistItemTemplate> al = new ArrayList<CTGChecklistItemTemplate>();
 		Cursor list = getValidTemplateItemsCursor(templateRef, clientRefIndex, uuid);
 		
-		//these lines below were removed because when the database back-end is updated
-		//the display still holds the reference without the new server id
-		//so look for both items created only locally and those from the server too
-
-//		if (templateRef > 0) //get template that was downloaded from the server
-//			list = getValidTemplateItemsCursor(templateRef);
-//		else //get locally created template
-//			list = getValidTemplateItemsCursor(clientRefIndex, uuid);
 		if (list.moveToFirst()){
 			do {
 				al.add(getFromCursor(list));
@@ -391,16 +382,7 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 		list.close();
 		return al;
 	}
-	
-//	/**
-//	 * Returns the cursor objects.
-//	 * @return ArrayList<CTGChecklistItemTemplate>
-//	 */
-//	public Cursor getValidTemplateItemsCursor(int templateRef) {
-//		return db.query(DATABASE_TABLE, null, 
-//				CTG_CIT_TEMPLATE_REF+" = "+templateRef+" AND "+CTG_CIT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
-//				null, null, null, CTG_CIT_SECTION_INDEX+", "+CTG_CIT_SECTION_ORDER);
-//	}
+
 	
 	/**
 	 * Returns the cursor objects.
@@ -412,6 +394,29 @@ public class CTGChecklistItemTemplateTable extends TableInterface<CTGChecklistIt
 						CTG_CIT_CLIENT_REF_INDEX+" = ? AND "+CTG_CIT_CLIENT_UUID+" = ? AND "+CTG_CIT_CLIENT_REF_INDEX+" > 0) ) AND "+
 				CTG_CIT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
 				new String[] { templateRef+"", clientRefIndex+"", uuid}, null, null, CTG_CIT_SECTION_INDEX+", "+CTG_CIT_SECTION_ORDER);
+	}
+	
+	@Override
+	public ArrayList<CTGChecklistItemTemplate> getLocalCreatedItems() {
+		ArrayList<CTGChecklistItemTemplate> al = new ArrayList<CTGChecklistItemTemplate>();
+		Cursor list = getLocalCreatedItemsCursor();
+		if (list.moveToFirst()){
+			do {
+				al.add(getFromCursor(list));
+			} while(list.moveToNext());
+		}
+		list.close();
+		return al;
+	}
+	
+	/**
+	 * Returns the cursor objects.
+	 * @return ArrayList<CTGRunChecklist>
+	 */
+	public Cursor getLocalCreatedItemsCursor() {
+		return db.query(DATABASE_TABLE, null, 
+				CTG_CIT_ID+" = 0 ",
+				null, null, null, null);
 	}
 	
 	/**

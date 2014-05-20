@@ -8,23 +8,19 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
-import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.util.Log;
 
 import com.worxforus.Result;
-import com.worxforus.ctg.CTGChecklistItemTemplate;
 import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
-import com.worxforus.ctg.CTGRunChecklist;
-import com.worxforus.ctg.CTGRunChecklistItem;
-import com.worxforus.ctg.CTGTag;
 import com.worxforus.db.TableInterface;
 
-public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTemplate> {
+public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTemplate> implements CTGLocalItemsInterface<CTGChecklistTemplate> {
 
-	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
+//	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
 	public static final String DATABASE_TABLE = "ctg_checklist_template_table";
 	public static final int TABLE_VERSION = 1;
 	// 1 - Initial version
@@ -100,8 +96,8 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 
 //	protected int last_version = 0;
 
-	public CTGChecklistTemplateTable(Context _context) {
-		dbHelper = new CTGTagTableDbHelper(_context, DATABASE_NAME, null,
+	public CTGChecklistTemplateTable(Context _context, String dbName) {
+		dbHelper = new CTGTagTableDbHelper(_context, dbName, null,
 				DATABASE_VERSION); // DATABASE_VERSION);
 	}
 
@@ -426,6 +422,29 @@ public class CTGChecklistTemplateTable extends TableInterface<CTGChecklistTempla
 	public Cursor getValidEntriesCursor() {
 		return db.query(DATABASE_TABLE, null, 
 				CTG_CT_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL, null, null, null, CTG_CT_TITLE);
+	}
+	
+	@Override
+	public ArrayList<CTGChecklistTemplate> getLocalCreatedItems() {
+		ArrayList<CTGChecklistTemplate> al = new ArrayList<CTGChecklistTemplate>();
+		Cursor list = getLocalCreatedItemsCursor();
+		if (list.moveToFirst()){
+			do {
+				al.add(getFromCursor(list));
+			} while(list.moveToNext());
+		}
+		list.close();
+		return al;
+	}
+	
+	/**
+	 * Returns the cursor objects.
+	 * @return ArrayList<CTGRunChecklist>
+	 */
+	public Cursor getLocalCreatedItemsCursor() {
+		return db.query(DATABASE_TABLE, null, 
+				CTG_CT_ID+" = 0 ",
+				null, null, null, null);
 	}
 	
 	/**

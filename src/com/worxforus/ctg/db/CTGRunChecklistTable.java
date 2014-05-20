@@ -1,8 +1,6 @@
 package com.worxforus.ctg.db;
 
-import java.sql.SQLData;
 import java.util.ArrayList;
-
 import junit.framework.Assert;
 import android.content.ContentValues;
 import android.content.Context;
@@ -17,12 +15,11 @@ import android.util.Log;
 import com.worxforus.Result;
 import com.worxforus.ctg.CTGRunChecklist;
 import com.worxforus.ctg.CTGConstants;
-import com.worxforus.ctg.CTGRunChecklistItem;
 import com.worxforus.db.TableInterface;
 
-public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
+public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> implements CTGLocalItemsInterface<CTGRunChecklist> {
 
-	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
+//	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
 	public static final String DATABASE_TABLE = "ctg_run_checklist_table";
 	public static final int TABLE_VERSION = 1;
 	// 1 - Initial version
@@ -96,8 +93,8 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 
 //	protected int last_version = 0;
 
-	public CTGRunChecklistTable(Context _context) {
-		dbHelper = new CTGTagTableDbHelper(_context, DATABASE_NAME, null,
+	public CTGRunChecklistTable(Context _context, String dbName) {
+		dbHelper = new CTGTagTableDbHelper(_context, dbName, null,
 				DATABASE_VERSION); // DATABASE_VERSION);
 	}
 
@@ -347,6 +344,29 @@ public class CTGRunChecklistTable extends TableInterface<CTGRunChecklist> {
 	public Cursor getValidItemsCursor() {
 		return db.query(DATABASE_TABLE, null, 
 				CTG_RC_META_STATUS+" = "+CTGConstants.META_STATUS_NORMAL,
+				null, null, null, null);
+	}
+	
+	@Override
+	public ArrayList<CTGRunChecklist> getLocalCreatedItems() {
+		ArrayList<CTGRunChecklist> al = new ArrayList<CTGRunChecklist>();
+		Cursor list = getLocalCreatedItemsCursor();
+		if (list.moveToFirst()){
+			do {
+				al.add(getFromCursor(list));
+			} while(list.moveToNext());
+		}
+		list.close();
+		return al;
+	}
+	
+	/**
+	 * Returns the cursor objects.
+	 * @return ArrayList<CTGRunChecklist>
+	 */
+	public Cursor getLocalCreatedItemsCursor() {
+		return db.query(DATABASE_TABLE, null, 
+				CTG_RC_ID+" = 0 ",
 				null, null, null, null);
 	}
 	

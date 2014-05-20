@@ -19,9 +19,9 @@ import com.worxforus.ctg.CTGConstants;
 import com.worxforus.ctg.CTGTag;
 import com.worxforus.db.TableInterface;
 
-public class CTGTagTable extends TableInterface<CTGTag> {
+public class CTGTagTable extends TableInterface<CTGTag> implements CTGLocalItemsInterface<CTGTag> {
 
-	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
+//	public static final String DATABASE_NAME = CTGConstants.DATABASE_NAME;
 	public static final String DATABASE_TABLE = "ctg_tag";
 	public static final int TABLE_VERSION = 3; //Updated Index and added 'locally changed'
 	// 2 - Added index
@@ -79,8 +79,8 @@ public class CTGTagTable extends TableInterface<CTGTag> {
 	private SQLiteDatabase db;
 	private CTGTagTableDbHelper dbHelper;
 
-	public CTGTagTable(Context _context) {
-		dbHelper = new CTGTagTableDbHelper(_context, DATABASE_NAME, null, DATABASE_VERSION);
+	public CTGTagTable(Context _context, String dbName) {
+		dbHelper = new CTGTagTableDbHelper(_context, dbName, null, DATABASE_VERSION);
 	}
 
 	/**
@@ -317,6 +317,29 @@ public class CTGTagTable extends TableInterface<CTGTag> {
 		}
 		list.close();
 		return al;
+	}
+	
+	@Override
+	public ArrayList<CTGTag> getLocalCreatedItems() {
+		ArrayList<CTGTag> al = new ArrayList<CTGTag>();
+		Cursor list = getLocalCreatedItemsCursor();
+		if (list.moveToFirst()){
+			do {
+				al.add(getFromCursor(list));
+			} while(list.moveToNext());
+		}
+		list.close();
+		return al;
+	}
+	
+	/**
+	 * Returns the cursor objects.
+	 * @return ArrayList<CTGRunChecklist>
+	 */
+	public Cursor getLocalCreatedItemsCursor() {
+		return db.query(DATABASE_TABLE, null, 
+				CTG_TAG_ID+" = 0 ",
+				null, null, null, null);
 	}
 	
 	/**

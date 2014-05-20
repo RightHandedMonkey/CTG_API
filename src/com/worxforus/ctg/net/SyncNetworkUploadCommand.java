@@ -17,6 +17,7 @@ import com.worxforus.ctg.CTGChecklistTemplate;
 import com.worxforus.ctg.CTGConstants;
 import com.worxforus.ctg.CTGRunChecklist;
 import com.worxforus.ctg.CTGRunChecklistItem;
+import com.worxforus.ctg.CTGTablePool;
 import com.worxforus.ctg.CTGTag;
 import com.worxforus.ctg.TablePool;
 import com.worxforus.ctg.db.CTGChecklistItemTemplateTable;
@@ -50,16 +51,16 @@ public class SyncNetworkUploadCommand implements Command {
 			
 		Result r = new Result();
 		//check last sync dates
-		SyncEntry ctagInfo = TableManager.getTableSyncInfo(c, CTGConstants.DATABASE_NAME, CTGTagTable.DATABASE_TABLE);
-		CTGTagTable ctgTable = TablePool.getTagTable(c);
-		SyncEntry ctInfo = TableManager.getTableSyncInfo(c, CTGConstants.DATABASE_NAME, CTGChecklistTemplateTable.DATABASE_TABLE);
-		CTGChecklistTemplateTable ctTable = TablePool.getCTTable(c);
-		SyncEntry citInfo = TableManager.getTableSyncInfo(c, CTGConstants.DATABASE_NAME, CTGChecklistItemTemplateTable.DATABASE_TABLE);
-		CTGChecklistItemTemplateTable citTable = TablePool.getCITTable(c);
-		SyncEntry rcInfo = TableManager.getTableSyncInfo(c, CTGConstants.DATABASE_NAME, CTGRunChecklistTable.DATABASE_TABLE);
-		CTGRunChecklistTable rcTable = TablePool.getRCTable(c);
-		SyncEntry rciInfo = TableManager.getTableSyncInfo(c, CTGConstants.DATABASE_NAME, CTGRunChecklistItemTable.DATABASE_TABLE);
-		CTGRunChecklistItemTable rciTable = TablePool.getRCITable(c);
+		SyncEntry ctagInfo = TableManager.getTableSyncInfo(c, CTGTablePool.getDbName(), CTGTagTable.DATABASE_TABLE);
+		CTGTagTable ctgTable = CTGTablePool.getTable(CTGTagTable.class, c);//TablePool.getTagTable(c);
+		SyncEntry ctInfo = TableManager.getTableSyncInfo(c, CTGTablePool.getDbName(), CTGChecklistTemplateTable.DATABASE_TABLE);
+		CTGChecklistTemplateTable ctTable = CTGTablePool.getTable(CTGChecklistTemplateTable.class, c);//TablePool.getCTTable(c);
+		SyncEntry citInfo = TableManager.getTableSyncInfo(c, CTGTablePool.getDbName(), CTGChecklistItemTemplateTable.DATABASE_TABLE);
+		CTGChecklistItemTemplateTable citTable = CTGTablePool.getTable(CTGChecklistItemTemplateTable.class, c);//TablePool.getCITTable(c);
+		SyncEntry rcInfo = TableManager.getTableSyncInfo(c, CTGTablePool.getDbName(), CTGRunChecklistTable.DATABASE_TABLE);
+		CTGRunChecklistTable rcTable = CTGTablePool.getTable(CTGRunChecklistTable.class, c);//TablePool.getRCTable(c);
+		SyncEntry rciInfo = TableManager.getTableSyncInfo(c, CTGTablePool.getDbName(), CTGRunChecklistItemTable.DATABASE_TABLE);
+		CTGRunChecklistItemTable rciTable = CTGTablePool.getTable(CTGRunChecklistItemTable.class, c);//TablePool.getRCITable(c);
 		
 		SyncTableManager sm = new SyncTableManager();
 		Utils.LogD(this.getClass().getName(), "Starting CTG Network sync.");
@@ -73,25 +74,25 @@ public class SyncNetworkUploadCommand implements Command {
 		}
 		//Don't attempt to load pages that require login if we can't login
 		if(NetAuthentication.isReadyForLogin()) {
-			r =  sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, ctgTable, new CTGTag(), itemsPerPage);
+			r =  sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGTablePool.getDbName(), ctgTable, new CTGTag(), itemsPerPage);
 			if (checkAbort(r)) {
 				return r;
 			}
-			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, ctTable, new CTGChecklistTemplate(), itemsPerPage),"");
+			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGTablePool.getDbName(), ctTable, new CTGChecklistTemplate(), itemsPerPage),"");
 			if (checkAbort(r)) {
 				return r;
 			}
-			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, citTable, new CTGChecklistItemTemplate(), itemsPerPage), "");
+			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGTablePool.getDbName(), citTable, new CTGChecklistItemTemplate(), itemsPerPage), "");
 			if (checkAbort(r)) {
 				return r;
 			}
 		
-			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, rcTable, new CTGRunChecklist(), itemsPerPage), "");
+			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGTablePool.getDbName(), rcTable, new CTGRunChecklist(), itemsPerPage), "");
 			if (checkAbort(r)) {
 				return r;
 			}
 
-			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGConstants.DATABASE_NAME, rciTable, new CTGRunChecklistItem(), itemsPerPage), "");
+			r.add_results_if_error(sm.handleSyncTableUpload(c, CTGWebHelper.getHost(), CTGTablePool.getDbName(), rciTable, new CTGRunChecklistItem(), itemsPerPage), "");
 		}
 		long finishTime = System.nanoTime()/1000000;
 		Utils.LogD(this.getClass().getName(), "Finish CTG Upload sync - took "+(finishTime-startTime)+" ms");
