@@ -20,14 +20,22 @@ public class CTGNetConstants {
 	public static final String CTG_LOGIN_INTERFACE = "ctg/app/service/ajax_login_interface.php";
 	public static final String CTG_LOGIN_STATUS = "ctg/app/service/ajax_login_status.php";
 	public static final String CTG_LOGOUT = "ctg/app/logout.php";
-	
+	public static final String CTG_VERIFY_EMAIL = "ctg/app/service/verify_unique_email.php";
+	public static final String CTG_REGISTER_EMAIL = "ctg/app/service/register_email_token.php";
 
 	//Generic Json Data field names
 	public static final String CTG_JSON_DATA = "data"; 
+	public static final String CTG_PAGE_ERROR = "error"; 
+	public static final String CTG_PAGE_RESULT = "result"; 
+	public static final String CTG_PAGE_MESSAGE = "message"; 
 	
 	//user login fields
 	public static final String USER_LOGIN_ID= "user_login_id";
 	public static final String USER_PASSWORD= "user_password";
+	
+	//token registration
+	public static final String CTG_TOKEN_UUID_HASH= "ctg_token_uuid_hash";
+	public static final String CTG_TOKEN= "ctg_token";
 
 	//Login error constants
 	public static final String NOT_LOGGED_IN = "Please login to access your items";
