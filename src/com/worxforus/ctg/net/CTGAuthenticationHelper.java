@@ -10,6 +10,7 @@ import android.content.Context;
 import android.util.Log;
 
 import com.worxforus.Result;
+import com.worxforus.Utils;
 import com.worxforus.json.JSONExceptionWrapper;
 import com.worxforus.json.JSONObjectWrapper;
 import com.worxforus.net.NetAuthentication;
@@ -169,14 +170,21 @@ public abstract class CTGAuthenticationHelper implements NetAuthenticationHelper
 		NetResult netResult = NetHandler.handlePostWithRetry(this.getLoginURL(host), params , NetHandler.NETWORK_DEFAULT_RETRY_ATTEMPTS);
 		//get json object and close network stream
 		NetHandler.handleGenericJsonResponseHelper(netResult, this.getClass().getName());
-		Log.d(this.getClass().getName(), "Performed network login to: "+host);
+		Utils.LogD(this.getClass().getName(), "Performed network login to: "+host);
 		return netResult;
 	}
 
 	@Override
-	public NetResult handleTokenLogin(String host, String accessToken, String uuid) {
-		// TODO Auto-generated method stub
-		return null;
+	public NetResult handleTokenLogin(String host, String accessToken, String uuidHash) {
+		List<NameValuePair> params = new ArrayList<NameValuePair>();
+		params.add(new BasicNameValuePair(CTGNetConstants.CTG_TOKEN, accessToken+""));
+		params.add(new BasicNameValuePair(CTGNetConstants.CTG_TOKEN_UUID_HASH, uuidHash+""));
+		
+		NetResult netResult = NetHandler.handlePostWithRetry(this.getLoginURL(host), params , NetHandler.NETWORK_DEFAULT_RETRY_ATTEMPTS);
+		//get json object and close network stream
+		NetHandler.handleGenericJsonResponseHelper(netResult, this.getClass().getName());
+		Utils.LogD(this.getClass().getName(), "Performed token login to: "+host);
+		return netResult;
 	}
 
 

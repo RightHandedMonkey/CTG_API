@@ -95,6 +95,7 @@ public class CTGRegisterEmailForTokenCommand implements Command {
 						//token will be available if successful
 						if (json.has(CTGNetConstants.CTG_TOKEN)) {
 							r.string = json.getString(CTGNetConstants.CTG_TOKEN);
+//							r.last_insert_id = json.getString(CTGNetConstants.CTG_TOKEN);
 						} else {
 							//No token was returned, so task was not successful - server should have returned a message
 							r.success = false;
