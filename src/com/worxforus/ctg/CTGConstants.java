@@ -1,9 +1,8 @@
 package com.worxforus.ctg;
 
-
 public class CTGConstants {
 	
-	public static final String APK_CODE = "3"; 
+	public static final String APK_CODE = "4"; 
 	//changed this to private so that getDatabaseName(...) must be called
 	//this way each user can have their own database.
 	private static final String DATABASE_NAME ="CTG";
@@ -14,11 +13,9 @@ public class CTGConstants {
 	//Misc global constants
 	public static final String PREVIEW_PREFIX = "preview_";
 
-
 	//Web GET/POST Data request strings
 	public static final String CTG_USERID = "lutz_userid";
 	public static final String CTG_PASSWORD = "lutz_password";
-
 
 	//Meta Status Definitions
 	public static final int META_STATUS_NORMAL = 0;
@@ -30,6 +27,4 @@ public class CTGConstants {
 	}
 	
 	public static String getOldDatabaseName() { return DATABASE_NAME; }
-
-	
 }
