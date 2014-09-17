@@ -58,6 +58,15 @@ public abstract class CTGAuthenticationHelper implements NetAuthenticationHelper
 	public String getLoginErrorMessage() { return CTGNetConstants.LOGIN_ERROR; }
 
 	@Override
+	public boolean checkForLoginFailure(NetResult result) {
+		if (result.net_success == false && result.net_error.equalsIgnoreCase(this.getLoginErrorMessage())) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	@Override
 	public int getUsernum(NetResult result) {
 		int usernum = -1;
 		try {
